@@ -1545,8 +1545,12 @@ def armed_peace_war_room_lines(world) -> List[str]:
             f"  {plural(quiet, 'quiet turn')} without a French battle — the courts "
             f"re-arm: the alarm rises {ARMED_PEACE_RISE} a turn toward the league "
             f"gate at {gate} and no longer falls ({who}).")
+    from backend.game_logic import fear as _fear_levers
+    _keep_out = ("a court whose fear of France stays at 50 or under, or that neither "
+                 "borders us nor lost or wants land we hold, will not join"
+                 if _fear_levers.chooses(world) else "a court raised above -10 will not join")
     lines.append(
-        f"  The levers: a court raised above -10 will not join; a bloc under a "
+        f"  The levers: {_keep_out}; a bloc under a "
         f"third of Europe ends the watch; the Congress suspends it; a battle "
         f"restarts the count; a declaration of war takes the alarm from "
         f"{int(world.threat_level)} to "

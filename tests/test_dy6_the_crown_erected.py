@@ -230,7 +230,10 @@ class TestTheStore:
         data = world.to_dict()
         # row MC's book of incidents is seeded at a scenario's opening and written
         # while it holds something (as DY-2's and DY-4's censuses allow)
-        assert set(data) - {"marshal_ledger", "marshal_accounts"} == set(WorldState().to_dict()), \
+        # FUN-2 (row FUN, Nov 26, 2026): Europe's fear of France is written only in a world
+        # the scenario's `fear` block arms (as row MC's books are written only when held)
+        assert set(data) - {"marshal_ledger", "marshal_accounts", "court_grudges", "fear_rules",
+                            "fear_book"} == set(WorldState().to_dict()), \
             "no new top-level field"
         again = WorldState.from_dict(data)
         assert CR.store(again) == CR.store(world)

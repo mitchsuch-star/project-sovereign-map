@@ -1587,4 +1587,6 @@ class TestTheReportIsTheEnemysMoves:
         # 61 -> 64 (row IC, directives, November 19, 2026): "Named army",
         # "Orders to several corps" and "War goal" joined the glossary.
         # 64 -> 65 (row IC, Session 3b, November 22, 2026): "An army's task".
-        assert len(names) == 65
+        # 65 -> 66 (row FUN, FUN-2, November 26, 2026): "Fear" — each country's
+        # own fear of France, the coalition's new rule.
+        assert len(names) == 66

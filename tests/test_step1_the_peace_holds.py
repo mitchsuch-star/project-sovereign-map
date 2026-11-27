@@ -181,6 +181,8 @@ class TestTheCascadeKeepsAFreshPeace:
         cascades to Britain through the boot's alliance triangle — and
         Britain, fresh from the table, stays at peace."""
         w = _boot()
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        w.fear_rules = None
         w.current_turn = 10
         _peace_with_the_coalition(w)
         w.current_turn = 11

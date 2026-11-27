@@ -599,6 +599,28 @@ def _with_ground(world, marshal, q: Dict[str, Any]) -> Dict[str, Any]:
     return q
 
 
+def with_fear(world, marshal, q: Dict[str, Any], region_name: str,
+              attack: bool = False) -> Dict[str, Any]:
+    """Row FUN, FUN-2 ("Erase this country?"): an order whose capture would
+    take a court's LAST province, or carry a court's fear of France past the
+    line, says so on its card — `erase` (`fear.capture_warning`: who would
+    join a league and when, the peace button's label) — and the card always
+    opens (`confirm`). Nothing when the order is refused, the rules are off,
+    or the capture is no news."""
+    if not q.get("ok") or not region_name:
+        return q
+    try:
+        from backend.game_logic import fear as _fear
+        warning = _fear.capture_warning(world, region_name, marshal.nation, attack=attack)
+    except Exception as exc:
+        report(exc, "order_quotes.with_fear: fear.capture_warning")
+        warning = None
+    if warning:
+        q["erase"] = warning
+        q["confirm"] = True
+    return q
+
+
 def _moves_in_reach(world, marshal) -> Dict[str, Dict[str, Any]]:
     """Every province the plain move takes from where he stands (`move_quote`
     ok), for the reach's tint: a handful of neighbours, never the map."""

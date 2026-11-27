@@ -349,6 +349,12 @@ CAMPAIGN_LOG_TYPES = {
     # stood down. Logged since Session 3 under a constant the census regex
     # could not read, and never whitelisted: a silent drop until now.
     "own_night",
+    # Row FUN, FUN-2 (Nov 26, 2026): a conquest of ours that rose and went back
+    # to its old court (or saw it rise again), and a court that joined the
+    # league against us when its fear of France passed the line (195 -> 197,
+    # flipped consciously; no inert type retired in exchange).
+    "province_rose",
+    "coalition_member_joined",
     # PL-14: Ultimatum events
     "ultimatum_issued",
     "ultimatum_accepted",
@@ -718,6 +724,8 @@ CATEGORY_MAP = {
     "war_goal": "command",
     "marshal_trial": "command",
     "own_night": "command",          # row IC, Session 4b: a marshal on his own
+    "province_rose": "territory",          # row FUN, FUN-2
+    "coalition_member_joined": "diplomacy",  # row FUN, FUN-2
     # PL-14: Ultimatum events
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
@@ -828,7 +836,8 @@ LOG_TIER_NOTABLE = frozenset({
     "blockade_broken", "bombardment", "boulogne_camp",
     "call_to_arms_honored_costly", "call_to_arms_refused_defensive",
     "call_to_arms_refused_offensive", "coalition_brewing_started",
-    "coalition_member_left", "coercive_demand", "continental_system_membership",
+    "coalition_member_left", "coalition_member_joined", "coercive_demand",
+    "continental_system_membership", "province_rose",
     "crisis_brewing",
     "crisis_passed", "defensive_cascade", "design_bought_off",
     "design_promoted", "desertion", "diplomatic_alliance_cascade",
@@ -3643,7 +3652,25 @@ def _oneliner_the_fallen_and_the_clients(ctx: OnelinerContext):
     if ctx.event_type == "coalition_member_left":
         nation = with_definite_article(display_nation(str(ctx.event.get("nation", "Unknown"))),
                                        capitalize=True)
+        # Row FUN, FUN-2: a member that joined out of fear goes home when it fades.
+        if ctx.event.get("by") == "fear_faded":
+            return f"{nation} has left the coalition — its fear of France faded."
         return f"{nation} has left the coalition."
+    if ctx.event_type == "coalition_member_joined":
+        # Row FUN, FUN-2: a court joined the league against us by its fear.
+        nation = with_definite_article(display_nation(str(ctx.event.get("nation", "Unknown"))),
+                                       capitalize=True)
+        league = str(ctx.event.get("coalition") or "the coalition")
+        if not league.lower().startswith("the "):
+            league = "the " + league
+        return f"{nation} joined {league} against us — its fear of France passed the line."
+    if ctx.event_type == "province_rose":
+        # Row FUN, FUN-2: a conquest of ours left without troops rose.
+        region = humanize_entity_name(str(ctx.event.get("region") or "A province"))
+        court = with_definite_article(display_nation(str(ctx.event.get("target_nation") or "")))
+        if ctx.event.get("reborn"):
+            return f"{region} rose against us — {court} rises again there."
+        return f"{region} rose against us and went back to {court}."
     return _NEXT_STAGE
 
 

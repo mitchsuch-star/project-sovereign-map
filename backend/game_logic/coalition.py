@@ -1888,6 +1888,9 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
                             relation_shift: int = 0) -> bool:
     """Check if a nation qualifies for coalition membership (§3b).
 
+    FUN-2: against the player in an armed world the choice is FEAR (past 50,
+    a border with France's house or a stake, never France's ally —
+    `fear.qualifies_by_fear`), not relations. Otherwise:
     Qualifies if: relation < -10, not vassal, not already at war with the
     coalition's target (default: the player — §4.4b anchor work), and — PR-1
     — has not just concluded a peace with that target.
@@ -1900,23 +1903,22 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
     if nation == tgt:
         return False
     relation = _get_relation(world, tgt, nation) + int(relation_shift)
-    is_vassal = nation in getattr(world, 'vassals', {})
-    already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
-    if is_vassal or already_at_war:
+    if _league_bars(nation, world, tgt):
         return False
-    # EA-19: a court whose declaration on the target R99 would refuse (the
-    # pair cooldown a truce, a settlement or the exhausted-pair exit writes)
-    # is not counted for a league it could not declare in.
-    if A_TRUCE_BINDS_THE_LEAGUE:
-        from backend.game_logic.diplomacy import declaration_cooldown_left
-        if declaration_cooldown_left(world, nation, tgt) > 0:
-            return False
-    # GE-3 review #10/#19/#41: while the Congress sits, a great power that
-    # answers it (recognizing, shut out) or holds a truce with the Emperor is
-    # never marched into a NEW coalition ('' — dormant — when none sits).
-    from backend.game_logic.congress import spared_from_coalition
-    if spared_from_coalition(world, nation, tgt):
-        return False
+    # FUN-2 (row FUN, "conquest with a cost"; SYSTEMS_REFERENCE §240): in a
+    # world whose scenario arms the fear rules, the PLAYER's league is
+    # chosen by fear — past the line, a border with France's house or a
+    # stake in land it holds, never France's ally (`fear.qualifies_by_fear`)
+    # — not by relations; `relation_shift` (a declaration's projection) has
+    # nothing to move here. The Congress's refusers still qualify whatever
+    # their fear (GE-3 §2.5). Other targets keep relations below -10.
+    from backend.game_logic import fear as _fear
+    if tgt == world.player_nation and _fear.chooses(world):
+        if not _fear.qualifies_by_fear(world, nation):
+            from backend.game_logic.congress import refuser_qualifies
+            if not refuser_qualifies(world, nation, tgt):
+                return False
+        return not peace_with_target_is_fresh(nation, world, tgt)
     if relation >= -10:
         # GE-3 §2.5: a great power refusing the Congress of Paris qualifies
         # whatever its relation — a court refusing out of fear alone would
@@ -1926,6 +1928,42 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
             return False
     # PR-1: a court that signed yesterday is not marched back out today.
     return not peace_with_target_is_fresh(nation, world, tgt)
+
+
+def _league_bars(nation: str, world, tgt: str) -> bool:
+    """The exclusions `qualifies_for_coalition` reads before relations or
+    fear: a vassal, a court already at war with the target, a truce's
+    cooldown (EA-19), a court the sitting Congress spares (GE-3)."""
+    is_vassal = nation in getattr(world, 'vassals', {})
+    already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
+    if is_vassal or already_at_war:
+        return True
+    # EA-19: a court whose declaration on the target R99 would refuse (the
+    # pair cooldown a truce, a settlement or the exhausted-pair exit writes)
+    # is not counted for a league it could not declare in.
+    if A_TRUCE_BINDS_THE_LEAGUE:
+        from backend.game_logic.diplomacy import declaration_cooldown_left
+        if declaration_cooldown_left(world, nation, tgt) > 0:
+            return True
+    # GE-3 review #10/#19/#41: while the Congress sits, a great power that
+    # answers it (recognizing, shut out) or holds a truce with the Emperor is
+    # never marched into a NEW coalition ('' — dormant — when none sits).
+    from backend.game_logic.congress import spared_from_coalition
+    if spared_from_coalition(world, nation, tgt):
+        return True
+    return False
+
+
+def league_excluded(nation: str, world, target: Optional[str] = None) -> bool:
+    """FUN-2: every clause of `qualifies_for_coalition` EXCEPT the choice
+    (relations, or fear) — the order card's "would she join once this
+    capture lands?" reads the rest as it stands."""
+    tgt = target or world.player_nation
+    if nation == tgt:
+        return True
+    if _league_bars(nation, world, tgt):
+        return True
+    return bool(peace_with_target_is_fresh(nation, world, tgt))
 
 
 def get_qualifying_nations(world, target: Optional[str] = None,
@@ -2491,12 +2529,25 @@ def a_league_the_brew_could_form(world, qualifying: List[str],
     never exist."""
     if not qualifying:
         return False
-    already_at_war = get_nations_at_war_with_target(world, target)
+    already_at_war = _league_at_war_members(world, target)
     if target != world.player_nation:
         already_at_war = [n for n in already_at_war
                           if n != world.player_nation]
         qualifying = [n for n in qualifying if n != world.player_nation]
-    return len(set(already_at_war + qualifying)) >= 2
+    from backend.game_logic import fear as _fear
+    return len(set(already_at_war + qualifying)) >= _fear.league_min(world, target)
+
+
+def _league_at_war_members(world, target: str) -> List[str]:
+    """The courts already at war with `target` that a forming league takes
+    in. FUN-2: against France in an armed world, only those with a border
+    with France's house or a stake in land it holds — no member without
+    one (the brief's measure (a))."""
+    already_at_war = get_nations_at_war_with_target(world, target)
+    from backend.game_logic import fear as _fear
+    if target == world.player_nation and _fear.chooses(world):
+        already_at_war = [n for n in already_at_war if _fear.border_or_stake(world, n)]
+    return already_at_war
 
 
 def form_coalition(qualifying_nations: List[str], world,
@@ -2511,7 +2562,9 @@ def form_coalition(qualifying_nations: List[str], world,
     france = target or world.player_nation
 
     # 1. Identify all members
-    already_at_war = get_nations_at_war_with_target(world, france)
+    already_at_war = _league_at_war_members(world, france)
+    from backend.game_logic import fear as _fear
+    _need = _fear.league_min(world, france)
     if france != world.player_nation:
         # §16.1-8: the PLAYER is never enrolled in an eclipse coalition —
         # not even via the already-at-war arm. France fights its own wars
@@ -2522,10 +2575,15 @@ def form_coalition(qualifying_nations: List[str], world,
                               if n != world.player_nation]
     new_belligerents = [n for n in qualifying_nations if n not in already_at_war]
     all_members = list(set(already_at_war + qualifying_nations))
+    # FUN-2: who declares BY FEAR, read before any declaration moves a relation
+    # (a Congress refuser marches for the Congress, never "by fear")
+    _afraid_at_formation = ({n for n in new_belligerents if _fear.qualifies_by_fear(world, n)}
+                            if france == world.player_nation and _fear.chooses(world) else set())
 
     # Must have at least 1 qualifying nation (not already at war)
-    # AND at least 2 total members
-    if not qualifying_nations or len(all_members) < 2:
+    # AND at least 2 total members (FUN-2: three against France in an armed
+    # world — `fear.league_min`)
+    if not qualifying_nations or len(all_members) < _need:
         return {"success": False, "message": "Insufficient nations for coalition."}
 
     # 2. Apply war declarations for new belligerents (lazy import to avoid circular)
@@ -2563,7 +2621,7 @@ def form_coalition(qualifying_nations: List[str], world,
         at_war_now = set(get_nations_at_war_with_target(world, france))
         all_members = [n for n in all_members
                        if n in at_war_now or n not in new_belligerents]
-        if A_LEAGUE_NEEDS_TWO_MEMBERS and len(all_members) < 2:
+        if A_LEAGUE_NEEDS_TWO_MEMBERS and len(all_members) < _need:
             # EA-19's rider: the gate above was "at least 2 members" BEFORE
             # the failed declarations were dropped; a league they leave with
             # one court (or none) is no league. A declaration that carried
@@ -2634,6 +2692,14 @@ def form_coalition(qualifying_nations: List[str], world,
         "strategic_posture": "defensive",  # Will be updated immediately
         "posture_last_updated": int(world.current_turn),
     }
+    # FUN-2: the members that declared BY FEAR (the new belligerents of a
+    # league against France in an armed world) — the ones whose fear can
+    # fade them home (`fear.faded_home`). A court already at war marched
+    # for its own reasons and keeps its own war.
+    if france == world.player_nation and _fear.chooses(world):
+        world.active_coalition["by_fear"] = sorted(
+            n for n in new_belligerents
+            if n in all_members and n in _afraid_at_formation)
 
     # WPS-A: Coalition members get a collective purpose once coalition context exists.
     from backend.game_logic.diplomacy import assign_coalition_war_objective
@@ -3072,6 +3138,13 @@ def declaration_would_gather_a_league(world, aggressor: str,
               if c != target]
     if not courts:
         return None
+    # FUN-2: where fear chooses the league (the shift above moves nothing
+    # there), the courts must still make a league of three.
+    from backend.game_logic import fear as _fear
+    if aggressor == world.player_nation and _fear.chooses(world):
+        _with_target = list(courts) + ([target] if target and _fear.border_or_stake(world, target) else [])
+        if not a_league_the_brew_could_form(world, _with_target, aggressor):
+            return None
     # The post-dissolution cooldown still running: no league gathers until it
     # lapses (a sub-60 alarm plus one declaration cannot reach the >=90
     # override), so the objection must say "if it still stands at 60 then".
@@ -3223,8 +3296,12 @@ def dissolve_coalition(world, reason: str,
 
 
 def remove_coalition_member(nation: str, world,
-                            by_treaty: bool = False) -> List[Dict]:
+                            by_treaty: bool = False, reason: str = "") -> List[Dict]:
     """Remove a nation from the active coalition (e.g., separate peace).
+
+    FUN-2: ``reason="fear_faded"`` — a member that joined out of fear and
+    whose fear fell under the leave line (`fear.faded_home`): the notice says
+    so (no peace was signed) and the log row carries ``by``.
 
     Handles leader transition (§4b) and dissolution check. IQ-3:
     ``by_treaty`` is passed ONLY by the `set_diplomatic_state` ejection arm
@@ -3246,24 +3323,38 @@ def remove_coalition_member(nation: str, world,
     coalition["members"] = members
 
     # Notification
-    world.notifications.add(create_notification(
-        COALITION_MEMBER_PEACED,
-        NotificationPriority.NORMAL,
-        f"{nation} Left Coalition",
-        f"{nation} has signed a separate peace and left {coalition.get('name', 'the coalition')}.",
-        int(world.current_turn),
-    ))
+    if reason == "fear_faded":
+        # FUN-2: no peace was signed — her fear of France faded.
+        world.notifications.add(create_notification(
+            COALITION_MEMBER_PEACED,
+            NotificationPriority.NORMAL,
+            f"{_left_name(world, nation)} Left the Coalition",
+            f"{_left_name(world, nation)} has left {coalition.get('name', 'the coalition')}: "
+            f"its fear of France has faded. It would take our peace now.",
+            int(world.current_turn),
+        ))
+    else:
+        world.notifications.add(create_notification(
+            COALITION_MEMBER_PEACED,
+            NotificationPriority.NORMAL,
+            f"{nation} Left Coalition",
+            f"{nation} has signed a separate peace and left {coalition.get('name', 'the coalition')}.",
+            int(world.current_turn),
+        ))
 
-    # §4b: -15 relation with remaining members ("betrayal")
+    # §4b: -15 relation with remaining members ("betrayal") — FUN-2: not for a
+    # member whose fear faded (it signed no separate peace)
     from backend.game_logic.diplomatic_dialogue import modify_relation_booked
-    for member in members:
-        modify_relation_booked(world, nation, member, -15, "coalition_leave", nation, member)
+    if reason != "fear_faded":
+        for member in members:
+            modify_relation_booked(world, nation, member, -15, "coalition_leave", nation, member)
 
     # Log event
     world.log_event({
         "type": "coalition_member_left",
         "nation": nation,
         "coalition_name": coalition.get("name", ""),
+        **({"by": str(reason)} if reason else {}),   # FUN-2
     })
 
     events.append({
@@ -3531,6 +3622,12 @@ def process_coalition_turn(world) -> List[Dict]:
     # GE-1 E2: with no court left to be alarmed, the player's passive
     # producers (1, 1b, 1c) are silent. The decay below still runs.
     _nobody_left = no_court_left_to_alarm(world, france)
+
+    # ────────── 0. FUN-2: every court's fear of France fades (2 a turn) ──────────
+    # Before any reading this turn, so the brew, the threshold, the standing
+    # league and the surfaces all read the faded value. Unarmed: nothing.
+    from backend.game_logic import fear as _fear
+    _fear.fade(world)
 
     # ────────── 1. Passive threat from region control (§2a) ──────────
     france_regions = len(world.get_nation_regions(france))
@@ -3867,7 +3964,13 @@ def process_coalition_turn(world) -> List[Dict]:
         # (GE-3 §2.5) the fixed floor of 40 cancelled the brew on its
         # first decaying tick, every time - the CRITICAL card flicked on
         # and off and the league never declared. Stock gate: 40, as before.
-        if brewing_threat < brew_cancel_floor(world, brewing_target) or len(qualifying) == 0:
+        # FUN-2: against France in an armed world the brew holds only while
+        # the league it would form still has its three (`fear.league_min`).
+        from backend.game_logic import fear as _fear_brew
+        _too_few = bool(brewing_target == france and _fear_brew.chooses(world)
+                        and not a_league_the_brew_could_form(world, qualifying, france))
+        if (brewing_threat < brew_cancel_floor(world, brewing_target) or len(qualifying) == 0
+                or _too_few):
             world.coalition_brewing = None
             world.notifications.dismiss_by_type(COALITION_BREWING)
             events.append({
@@ -4080,6 +4183,13 @@ def process_coalition_turn(world) -> List[Dict]:
                 queue_dispatch_event(
                     world, "diplomatic_coalition_brewing_other",
                     {"target": humanize_entity_name(_tgt)}, "always")
+
+    # ────────── 7c. FUN-2: the standing league and fear ──────────
+    # A member that joined by fear and fell under the leave line goes home
+    # first (it is free to take France's peace); then every court that now
+    # qualifies joins the league that stands. Unarmed or no league: nothing.
+    events.extend(_fear.faded_home(world))
+    events.extend(_fear.standing_joins(world))
 
     # ────────── 8. Update posture if coalition active (§4c) ──────────
     if world.active_coalition:
@@ -4344,7 +4454,11 @@ def _league_signature(world, tgt: str) -> tuple:
             int(getattr(world, "diplomatic_points", 0) or 0),
             str((mission or {}).get("target", "")) if isinstance(mission, dict) else "",
             len(world.get_nation_regions(tgt)) if hasattr(world, "get_nation_regions") else 0,
-            army, cooldowns)
+            army, cooldowns,
+            # FUN-2: the fear the rows read (and the regions France's house
+            # holds — a capture moves a border or a stake).
+            tuple(sorted((getattr(world, "court_grudges", None) or {}).items())),
+            bool(getattr(world, "fear_rules", None)))
 
 
 def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
@@ -4397,6 +4511,11 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
     sitting = bool(is_player and _congress.sitting(world))
     majors = set(_congress.great_powers(world))
     vassals = getattr(world, "vassals", {}) or {}
+    # FUN-2: the player's league is chosen by fear in an armed world — the
+    # rows say a court's fear and why it stays out, and carry no relation
+    # price (relations no longer keep a court out of it).
+    from backend.game_logic import fear as _fear
+    fear_on = bool(is_player and _fear.chooses(world))
     rows: List[Dict[str, Any]] = []
     for nation in world.get_active_nations():
         if nation == tgt or nation in vassals:
@@ -4417,9 +4536,38 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
             if r.get("kind") == "sponsorship" and r.get("aim") == tgt]
         row["titles"] = treaty_titles_between(world, nation, tgt, house=tgt)
         row["titles_contested"] = bool(row["titles"] and sitting)
+        if fear_on:
+            row["fear"] = int(_fear.fear_of(world, nation))
+            row["border"] = bool(_fear.borders_house(world, nation))
+            row["stake"] = bool(_fear.holds_stake(world, nation))
+            row["ally"] = bool(world.are_allies(tgt, nation))
+            row["why"] = ""
         priced = False
         if state == "WAR":
             row["status"] = LEAGUE_AT_WAR
+        elif fear_on:
+            spared = _congress.spared_from_coalition(world, nation, tgt)
+            afraid = _fear.qualifies_by_fear(world, nation)
+            if spared:
+                row["status"], row["reason"] = LEAGUE_SPARED, spared
+            elif qualifies_for_coalition(nation, world, target=tgt):
+                if afraid:
+                    row["status"] = LEAGUE_JOINS
+                else:
+                    row["status"] = LEAGUE_REFUSES
+                    row["reason"] = "she refuses the Congress"
+            else:
+                left = fresh_peace_turns_left(nation, world, tgt)
+                held = (_truce_cooldown_left(world, nation, tgt)
+                        if A_TRUCE_BINDS_THE_LEAGUE else 0)
+                if held > 0 and state == "ARMISTICE" and afraid:
+                    row["status"], row["bound_turns"] = LEAGUE_TRUCE, int(held)
+                elif max(left, held) > 0 and afraid:
+                    row["status"] = LEAGUE_BOUND
+                    row["bound_turns"] = int(max(left, held))
+                else:
+                    row["status"] = LEAGUE_OUT
+                    row["why"] = _fear.why_out(world, nation)
         else:
             spared = (_congress.spared_from_coalition(world, nation, tgt)
                       if is_player else "")
@@ -4468,12 +4616,22 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
                         world, nation, LEAGUE_KEEP_OUT_RELATION,
                         start=relation + int(BUYOFF_RELATION_BONUS))
         rows.append(row)
-    rows.sort(key=lambda r: (_LEAGUE_ORDER.get(r["status"], 9),
-                             0 if r["major"] else 1, r["relation"], r["nation"]))
+    if fear_on:
+        rows.sort(key=lambda r: (_LEAGUE_ORDER.get(r["status"], 9),
+                                 0 if r["major"] else 1, -int(r.get("fear", 0)),
+                                 r["nation"]))
+    else:
+        rows.sort(key=lambda r: (_LEAGUE_ORDER.get(r["status"], 9),
+                                 0 if r["major"] else 1, r["relation"], r["nation"]))
     out["courts"] = rows
     out["joiners"] = [r["nation"] for r in rows
                       if r["status"] in (LEAGUE_JOINS, LEAGUE_REFUSES)]
     first_joiner: Optional[int] = 0 if out["joiners"] else None
+    if fear_on and out["joiners"] and not a_league_the_brew_could_form(
+            world, list(out["joiners"]), tgt):
+        # FUN-2: a league needs three — joiners too few to make one gather none.
+        first_joiner = None
+        out["too_few"] = True
     bound = [int(r["bound_turns"]) for r in rows if r["status"] == LEAGUE_BOUND]
     if first_joiner is None and bound:
         first_joiner = min(bound)
@@ -4567,6 +4725,8 @@ def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str
     rel = _minus(int(row.get("relation", 0)))
     if status == LEAGUE_AT_WAR:
         return f"{name} — at war with us."
+    if "fear" in row:
+        return _fear_row_text(world, row, forecast, name)
     if status == LEAGUE_SPARED:
         return (f"{name} — relations {rel}, but {row.get('reason') or 'spared'}: "
                 f"she is not marched into a league while the Congress sits.")
@@ -4588,6 +4748,41 @@ def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str
     return f"{head} {detail}".strip()
 
 
+def _fear_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any], name: str) -> str:
+    """FUN-2: one court's line when the league is chosen by fear — its fear
+    of France, then what it would do and why, in plain words."""
+    from backend.display_names import plural
+    from backend.game_logic import fear as _fear
+    fear = int(row.get("fear", 0))
+    line = _fear.rule(world, "join")
+    status = row.get("status")
+    head = f"{name} — fear of France {fear}"
+    if status == LEAGUE_SPARED:
+        return (f"{head}, but {row.get('reason') or 'spared'}: she is not marched "
+                f"into a coalition while the Congress sits.")
+    if status == LEAGUE_TRUCE:
+        return (f"{head}, but our truce binds her "
+                f"{plural(int(row.get('bound_turns', 0)), 'more turn')}: she cannot "
+                f"declare on us while it holds.")
+    if status == LEAGUE_BOUND:
+        return (f"{head}, but her peace with us binds her "
+                f"{plural(int(row.get('bound_turns', 0)), 'more turn')}; then she may "
+                f"join.")
+    if status == LEAGUE_OUT:
+        why = str(row.get("why") or "")
+        return f"{head}: she stays out of a coalition ({why})." if why else f"{head}: she stays out of a coalition."
+    if status == LEAGUE_REFUSES:
+        return f"{head}: {league_row_detail(world, row, forecast)}".strip()
+    # LEAGUE_JOINS
+    reason = "she borders us" if row.get("border") else "she lost or wants land we hold"
+    text = f"{head} (past {line}) and {reason}: she would join."
+    if forecast.get("too_few") and not forecast.get("formed"):
+        text += (f" A coalition needs {_fear.league_min(world)} countries, so none gathers "
+                 f"yet.")
+    detail = league_row_detail(world, row, forecast)
+    return f"{text} {detail}".strip()
+
+
 def _league_design_sentence(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str:
     """S14G-9 / S14G-D6 (Pre-Deploy S14h part 1, October 26, 2026): the row's
     sentence about her DESIGN - " Design bought off, 9 turns left; her league
@@ -4603,6 +4798,10 @@ def _league_design_sentence(world, row: Dict[str, Any], forecast: Dict[str, Any]
     there is nothing to say. A leading space, to follow a sentence."""
     status = row.get("status")
     if status not in (LEAGUE_JOINS, LEAGUE_BOUND, LEAGUE_OUT):
+        return ""
+    if "fear" in row:
+        # FUN-2: a design bought off moves relations, and relations no
+        # longer keep a court out of the player's league — nothing to say.
         return ""
     target = forecast.get("target")
     from backend.game_logic.instruments import buyoff_row_clause
@@ -4646,6 +4845,15 @@ def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> s
         return (text + " She refuses the Congress, so no courtship keeps her "
                        "out while it sits — her price is her recognition, on "
                        f"the Congress tab (press {key_hint('D', then='7')}).").strip()
+    if "fear" in row:
+        # FUN-2: fear, not relations, keeps her out — the honest levers.
+        from backend.game_logic import fear as _fear
+        if status == LEAGUE_JOINS and forecast.get("formed") and _fear.the_afraid_join_a_standing_league():
+            text += " She joins the league that stands at the end of this turn."
+        if status in (LEAGUE_JOINS, LEAGUE_BOUND):
+            text += (f" Her fear falls {_fear.rule(world, 'fade')} a turn while we take "
+                     f"nothing; an alliance or a truce with her keeps her out.")
+        return text.strip()
     declare = forecast.get("declare_turns")
     if (A_STANDING_LEAGUE_IS_NOT_REOPENED and forecast.get("formed")
             and status in (LEAGUE_JOINS, LEAGUE_BOUND)):
@@ -4684,11 +4892,14 @@ def league_rows(world, target: Optional[str] = None) -> List[Dict[str, Any]]:
             continue
         if status == LEAGUE_OUT and not row.get("major"):
             continue
-        out.append({"nation": row["nation"], "display": row["display"],
-                    "status": status, "major": bool(row.get("major")),
-                    "relation": int(row.get("relation", 0)),
-                    "out_of_time": bool(row.get("out_of_time")),
-                    "text": league_row_text(world, row, forecast)})
+        entry = {"nation": row["nation"], "display": row["display"],
+                 "status": status, "major": bool(row.get("major")),
+                 "relation": int(row.get("relation", 0)),
+                 "out_of_time": bool(row.get("out_of_time")),
+                 "text": league_row_text(world, row, forecast)}
+        if "fear" in row:
+            entry["fear"] = int(row.get("fear", 0))   # FUN-2 (GR2: an int)
+        out.append(entry)
     return out
 
 

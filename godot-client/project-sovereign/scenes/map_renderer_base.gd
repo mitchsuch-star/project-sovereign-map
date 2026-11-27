@@ -197,12 +197,23 @@ const OWNER_FILL_MAX_PROVINCES: int = 128
 # write per switch, the same G4 budget shape as the palette upload. A real
 # multi-overlay map-mode system (supply/diplomatic overlays, fog decoupled
 # from the owner palette) stays owned by the DEF-12 future spec.
-const MAP_FILL_MODE_ORDER: Array = ["blended", "political", "terrain"]
+const MAP_FILL_MODE_ORDER: Array = ["blended", "political", "terrain", "fear"]
 const MAP_FILL_MODE_STRENGTHS := {
 	"blended": OWNER_FILL_STRENGTH,
 	"political": 0.85,
 	"terrain": 0.15,
+	"fear": 0.85,
 }
+# Row FUN, FUN-2 (November 26, 2026): "Who fears you" — the fourth M mode paints
+# each court by its fear of France (the summary's `court_fear`, the line past
+# which a court may join a league): calm parchment, amber as it nears the line,
+# red past it; France and its vassals in their own quiet slate. The same one
+# palette upload as ownership (G4) — only the colour a province gets changes.
+const FEAR_CALM := Color(0.86, 0.82, 0.70, 1.0)
+const FEAR_NEAR := Color(0.88, 0.62, 0.20, 1.0)
+const FEAR_PAST := Color(0.78, 0.16, 0.12, 1.0)
+const FEAR_HOUSE := Color(0.36, 0.42, 0.55, 1.0)
+const FEAR_NONE := Color(0.62, 0.62, 0.60, 1.0)   # a holder with no fear to show (no court)
 # Slice 7.5 (DEF-10): fog previously lerped owner rgb by the FULL fog alpha —
 # "unknown" (0.75) destroyed 75% of the national hue and collapsed the mostly
 # fogged turn-1 map to uniform grey-brown (measured mean pairwise deltaE 11.7
@@ -568,6 +579,11 @@ var _ui_avoid_global_rects: Array = []
 var _label_avoid_world_rects: Array = []
 # Slice 7.5 (DEF-12 cheap tier): the active fill mode key.
 var _map_fill_mode: String = "blended"
+# Row FUN, FUN-2: {court: fear of France}, the joining line and France's house
+# (France and its vassals — the slate), for the fear mode.
+var court_fear: Dictionary = {}
+var fear_line: int = 50
+var fear_house: Array = []
 
 
 func _get_region_positions() -> Dictionary:
@@ -1553,6 +1569,8 @@ func _refresh_owner_fill_palette():
 		if region_controllers.has(region_name) and _is_region_wired(region_name):
 			var controller = str(region_controllers[region_name])
 			owner_color = Utils.NATION_COLORS.get(controller, Utils.COLOR_ENEMY_DEFAULT)
+			if _map_fill_mode == "fear":
+				owner_color = fear_color(controller)
 		# Map Slice 7: province-level fog rides the same palette entry (legacy
 		# parity with the circle map's FogOverlay panels). rgb lerps toward the
 		# fog color by its alpha (scaled by FOG_HUE_LERP_SCALE since Slice 7.5
@@ -1759,6 +1777,10 @@ func cycle_map_fill_mode() -> String:
 	# terrain. Returns the new mode key so callers can surface it.
 	var idx: int = MAP_FILL_MODE_ORDER.find(_map_fill_mode)
 	_map_fill_mode = MAP_FILL_MODE_ORDER[(idx + 1) % MAP_FILL_MODE_ORDER.size()]
+	# Row FUN, FUN-2: a world without the fear rules sends no `court_fear` —
+	# its cycle skips the fear mode rather than paint every court one slate.
+	if _map_fill_mode == "fear" and court_fear.is_empty():
+		_map_fill_mode = MAP_FILL_MODE_ORDER[0]
 	_apply_map_fill_mode()
 	return _map_fill_mode
 
@@ -1771,6 +1793,41 @@ func _apply_map_fill_mode():
 	owner_fill_layer.material.set_shader_parameter(
 		"fill_strength", MAP_FILL_MODE_STRENGTHS[_map_fill_mode]
 	)
+	# Row FUN, FUN-2: the fear mode paints other colours — re-upload the palette
+	# (one upload, as an ownership change costs) on the way in and out of it.
+	_refresh_owner_fill_palette()
+
+
+func fear_color(controller: String) -> Color:
+	"""Row FUN, FUN-2: a court's colour in the "Who fears you" mode — France and
+	its vassals (`fear_house`) slate; a court calm at 0, amber as its fear nears
+	the line, red once past it; a holder that is neither, a neutral grey."""
+	if fear_house.has(controller):
+		return FEAR_HOUSE
+	if not court_fear.has(controller):
+		return FEAR_NONE
+	var fear := float(court_fear.get(controller, 0))
+	var line := float(maxi(fear_line, 1))
+	if fear > line:
+		return FEAR_PAST
+	return FEAR_CALM.lerp(FEAR_NEAR, clampf(fear / line, 0.0, 1.0))
+
+
+func update_court_fear(fear: Dictionary, line: int = 50, house: Array = []) -> void:
+	"""Row FUN, FUN-2: the summary's `court_fear`, `fear_line` and `fear_house` —
+	repainted at once only while the fear mode shows (the other modes never read
+	it). A world that sends no fear (a save without the rules) leaves the fear
+	mode for the first one, and says so (`map_mode_changed`)."""
+	court_fear = fear if fear is Dictionary else {}
+	fear_line = line
+	fear_house = house if house is Array else []
+	if _map_fill_mode == "fear":
+		if court_fear.is_empty():
+			_map_fill_mode = MAP_FILL_MODE_ORDER[0]
+			_apply_map_fill_mode()
+			map_mode_changed.emit(_map_fill_mode)
+		else:
+			_refresh_owner_fill_palette()
 
 
 func _refresh_map_labels():
@@ -5189,6 +5246,15 @@ func _draw_region_tooltip():
 			stability_color = Color(0.85, 0.75, 0.4)
 		stability_color = Utils.cv(stability_color)
 		_push_tooltip_line(lines, "Stability: %s%% (%s)" % [stability, stability_label], stability_color)
+	# Row FUN, FUN-2 (the real-client press, November 27, 2026): an unheld
+	# Hostile conquest's count, the province window's twin — the backend sends
+	# `rises_in` only for a province of ours that counts down to rising.
+	var rises_in := int(data.get("rises_in", 0))
+	if rises_in > 0:
+		var rises_to := str(data.get("rises_to", ""))
+		var rises_when := "next turn" if rises_in == 1 else "in %d turns" % rises_in
+		_push_tooltip_line(lines, "No troops here: it rises %s%s" % [rises_when,
+			(", back to " + rises_to) if rises_to != "" else ""], Color(0.85, 0.3, 0.3))
 
 	# CA9-F5: -1 is the fog sentinel (see region_panel.gd).
 	var supply_cap := int(data.get("supply_capacity", 0))

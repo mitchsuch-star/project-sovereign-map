@@ -659,6 +659,13 @@ FEEDBACK_STRINGS = {
         "negative": "no courtship at their court",
         "positive": "the months Talleyrand has spent at their court",
     },
+    # FUN-2 (row FUN, "conquest with a cost") — a court whose fear of France
+    # fell under the line and took it out of the league. Never negative; the
+    # negative text exists for the component-key completeness pin.
+    "fear_faded_mod": {
+        "negative": "their fear of France still holds",
+        "positive": "their fear of France has faded",
+    },
     # NA-2 (Nation Agendas §5.2) — the offer advanced or entrenched the
     # denial of the target court's active national design.
     "agenda_mod": {

@@ -35,7 +35,10 @@ def world1805():
 
 @pytest.fixture
 def world(world1805):
-    return WorldState.from_dict(json.loads(json.dumps(world1805.to_dict(), default=str)))
+    w = WorldState.from_dict(json.loads(json.dumps(world1805.to_dict(), default=str)))
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
 
 
 def _dispatch_lines(world, dtype):

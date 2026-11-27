@@ -1655,9 +1655,21 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
                 f"puts the design to sleep {COMPENSATION_TERM_TURNS} turns — "
                 f"{buyoff_league_clause()}. "
                 f"The forecast holds the board still.")
+            from backend.game_logic import fear as _fear_footer
+            if _fear_footer.chooses(world):
+                # FUN-2: the league forms on FEAR here, not relations.
+                result["league_footer"] = _fear_footer.league_footer(world)
         _line = _league.league_summary_line(world)
         if _line:
             result["league_line"] = _line
+    # FUN-2 (row FUN, "conquest with a cost"): every court's fear of France,
+    # most afraid first, with what it would do and why (`fear.fear_rows`) —
+    # the Balance tab's "Who fears you" block; absent in an unarmed world.
+    from backend.game_logic import fear as _fear_rows
+    if _fear_rows.chooses(world):
+        result["fear_rows"] = _fear_rows.fear_rows(world)
+        result["fear_line"] = int(_fear_rows.rule(world, "join"))
+        result["fear_footer"] = _fear_rows.league_footer(world)
     # DY-1 (DYNAMISM_SPEC.md §3, the gate §3c G4; Q6 — words only): the
     # Alarm of Europe — the courts whose appetite Europe has remarked, in
     # sentences (`alarm.alarm_lines`, the one composer); absent when Europe

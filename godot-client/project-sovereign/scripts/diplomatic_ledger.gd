@@ -1301,6 +1301,45 @@ func _designs_one_table(roads: Array) -> String:
 	return out + "[/table]\n" + Utils.CARD_CLOSE
 
 
+func _fear_block(boe: Dictionary) -> String:
+	"""Row FUN, FUN-2: the Balance tab's WHO FEARS YOU — one row a court that
+	fears us at all (flag, name, a meter, the figure, then what it would do and
+	why, the backend's own words), the rule in one paragraph under it."""
+	var rows = boe.get("fear_rows", null)
+	if not (rows is Array):
+		return ""
+	var line := int(boe.get("fear_line", 50))
+	var out := "[color=#" + Utils.COLOR_HEADER + "]WHO FEARS YOU[/color]  [color=#" + Utils.COLOR_INFO \
+		+ "]past " + str(line) + ", a country may join a coalition against us[/color]\n"
+	var shown := 0
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var fear := int(row.get("fear", 0))
+		if fear <= 0:
+			continue
+		var joins := bool(row.get("joins", false))
+		var tone: String = Utils.cv_hex(COLOR_RED) if joins else (COLOR_AMBER if fear > line else Utils.COLOR_INFO)
+		var fill: String = Utils.cv_hex(COLOR_RED) if fear > line else (COLOR_AMBER if fear * 2 > line else Utils.COLOR_GOLD)
+		var verdict := "would join a coalition" if joins else str(row.get("why", ""))
+		var causes = row.get("causes", [])
+		var minds := ""
+		if causes is Array and not causes.is_empty():
+			minds = " · alarmed by our taking " + ", ".join(PackedStringArray(causes))
+		out += "  " + Utils.bb_flag(str(row.get("nation", "")), 16) + " " \
+			+ str(row.get("display", row.get("nation", ""))) + " " \
+			+ Utils.bb_meter(float(fear), 100.0, 90, 8, fill) + " [color=#" + tone + "]" + str(fear) \
+			+ ((" — " + verdict) if verdict != "" else "") + "[/color]" \
+			+ "[color=#" + Utils.COLOR_INFO + "]" + minds + "[/color]\n"
+		shown += 1
+	if shown == 0:
+		out += "  [color=#" + Utils.COLOR_INFO + "]No country fears us yet.[/color]\n"
+	var footer := str(boe.get("fear_footer", ""))
+	if footer != "":
+		out += "  [color=#" + Utils.COLOR_INFO + "]" + footer + "[/color]\n"
+	return out + "\n"
+
+
 func _designs_block(designs) -> String:
 	"""VP-1: the Emperor's designs on the Balance of Europe — the road and
 	its two designs, or the three roads before a proclamation. The controls
@@ -1584,6 +1623,10 @@ func _render_balance_of_europe():
 	# reopen, who pays her, and the price to keep her out. Every figure is
 	# the backend's own forecast (shown = applied); the bare list below is
 	# the pre-7b fallback (the lever down sends no rows).
+	# Row FUN, FUN-2 (November 26, 2026): WHO FEARS YOU — every court's fear
+	# of France, most afraid first, a meter to the line and in plain words
+	# what it would do and why (`fear.fear_rows`). Absent where the rules are off.
+	bbcode += _fear_block(boe)
 	var league_rows = boe.get("league_rows", [])
 	var league_line = str(boe.get("league_line", ""))
 	if (league_rows is Array and league_rows.size() > 0) or league_line != "":

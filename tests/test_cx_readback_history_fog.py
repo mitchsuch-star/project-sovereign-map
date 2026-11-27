@@ -166,7 +166,11 @@ class TestTheReadbackRow:
         assert driven["r2_asked_at_once"] == 0
         assert driven["r2_asked_after_rest"] == 1
         assert driven["r2_asked_line"] == "Ney, attack Mack"
-        assert driven["r2_rest_ms"] >= 150, driven["r2_rest_ms"]   # the 220 ms debounce
+        # FUN2-27 (row FUN, Session FUN-2, November 27, 2026): the rest read in the
+        # engine's own frame time, the clock the 220 ms debounce Timer counts — the
+        # wall clock (`r2_rest_ms`, kept as a reading) read 78 ms under the whole
+        # suite's load while the engine handed out catch-up frame time.
+        assert driven["r2_rest_engine_ms"] >= 200, (driven["r2_rest_engine_ms"], driven["r2_rest_ms"])
 
     def test_a_stale_answer_is_dropped(self, driven):
         assert driven["r2_visible_after_stale"] is False

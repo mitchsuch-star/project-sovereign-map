@@ -41,6 +41,13 @@ def _boot():
         return WorldState.from_scenario(str(SCENARIO))
 
 
+def _boot_unarmed():
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w = _boot()
+    w.fear_rules = None
+    return w
+
+
 def _truce(world, a="France", b="Austria", cooldown=4, relation=-77):
     with _quiet():
         DP.set_diplomatic_state(world, a, b, "ARMISTICE", "test")
@@ -54,18 +61,18 @@ def _truce(world, a="France", b="Austria", cooldown=4, relation=-77):
 # ═════════════════════ EA-19 the truce binds the league ═════════════════════
 class TestATruceBindsTheLeague:
     def test_a_truce_partner_does_not_qualify(self):
-        w = _boot()
+        w = _boot_unarmed()
         _truce(w)
         assert CO.qualifies_for_coalition("Austria", w) is False
 
     def test_lever_down_the_gate_reads_only_war(self, monkeypatch):
         monkeypatch.setattr(CO, "A_TRUCE_BINDS_THE_LEAGUE", False)
-        w = _boot()
+        w = _boot_unarmed()
         _truce(w)
         assert CO.qualifies_for_coalition("Austria", w) is True
 
     def test_the_forecast_files_her_as_held_by_the_truce(self):
-        w = _boot()
+        w = _boot_unarmed()
         _truce(w)
         forecast = CO.league_forecast(w)
         row = next(r for r in forecast["courts"] if r["nation"] == "Austria")
@@ -78,14 +85,14 @@ class TestATruceBindsTheLeague:
 
     def test_lever_down_the_forecast_names_her_a_joiner(self, monkeypatch):
         monkeypatch.setattr(CO, "A_TRUCE_BINDS_THE_LEAGUE", False)
-        w = _boot()
+        w = _boot_unarmed()
         _truce(w)
         forecast = CO.league_forecast(w)
         row = next(r for r in forecast["courts"] if r["nation"] == "Austria")
         assert row["status"] == CO.LEAGUE_JOINS
 
     def test_one_cooldown_is_read_by_every_war_entry_gate(self):
-        w = _boot()
+        w = _boot_unarmed()
         _truce(w)
         assert DP.declaration_cooldown_left(w, "Austria", "France") == 4
         with _quiet():
@@ -95,7 +102,7 @@ class TestATruceBindsTheLeague:
         assert WC.can_declare_war(w, "Austria", "France")["reason"] == "armistice_cooldown"
 
     def test_the_forecast_cache_reads_the_cooldown(self):
-        w = _boot()
+        w = _boot_unarmed()
         key = _truce(w, cooldown=3)
         first = CO.league_forecast(w)
         w.armistice_cooldowns[key] = 0   # the truce's floor spent, same turn
@@ -116,13 +123,13 @@ class TestAStandingLeagueIsNotReopened:
         return CO.league_row_detail(w, row, forecast)
 
     def test_the_line_names_the_next_league(self):
-        detail = self._ottoman_detail(_boot())
+        detail = self._ottoman_detail(_boot_unarmed())
         assert "A league stands declared without her; she would march in the next" in detail
         assert "She will march" not in detail
 
     def test_lever_down_she_will_march(self, monkeypatch):
         monkeypatch.setattr(CO, "A_STANDING_LEAGUE_IS_NOT_REOPENED", False)
-        detail = self._ottoman_detail(_boot())
+        detail = self._ottoman_detail(_boot_unarmed())
         assert "She will march" in detail
 
 

@@ -43,7 +43,14 @@ import pytest
 from backend.game_logic import ai_diplomacy as AI
 from backend.game_logic import bond as B
 from backend.game_logic import coalition, congress, game_end
-from tests.test_congress_of_paris import _boot, _latch, _satisfy_all, _sit, _tick
+from tests.test_congress_of_paris import _boot as _armed_boot, _latch, _satisfy_all, _sit, _tick
+
+def _boot():
+    w = _armed_boot()
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
+
 
 REPO = Path(__file__).resolve().parents[1]
 HOLD = "Europe waits on Paris — no league declares while the Congress sits"
@@ -419,6 +426,8 @@ def _drive_press(tmp_path, name, *seams):
     for key in ("PYTHONIOENCODING", "SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START"):
         env.pop(key, None)
     env["INK_IRON_SAVE_DIR"] = str(tmp_path / "saves")
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    seams = ("backend.game_logic.fear:armed=False",) + tuple(seams)
     extra = [arg for seam in seams for arg in ("--seam", seam)]
     proc = subprocess.run(
         [sys.executable, str(REPO / "tools" / "playtest_driver.py"), "--name", name,

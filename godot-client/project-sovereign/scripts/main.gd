@@ -662,6 +662,8 @@ func _ready():
 		order_card.take_requested.connect(_on_order_card_take)     # row PW
 		if order_card.has_signal("diplomacy_requested"):
 			order_card.diplomacy_requested.connect(_on_order_card_diplomacy)   # row FUN, FUN-1
+		if order_card.has_signal("peace_requested"):
+			order_card.peace_requested.connect(_on_order_card_peace)   # row FUN, FUN-2
 	dialog_manager.modal_shown.connect(_on_modal_shown)
 
 	_configure_response_routes()
@@ -699,6 +701,9 @@ func _ready():
 		if region_panel.has_signal("quotes_requested"):
 			region_panel.quotes_requested.connect(_fetch_march_quotes)   # CC-2
 		region_panel.negotiate_requested.connect(_on_region_negotiate_requested)
+		# Row FUN, FUN-2: the panel's "Offer <court> peace now" (the card's road).
+		if region_panel.has_signal("peace_requested"):
+			region_panel.peace_requested.connect(_on_region_peace_requested)
 		# NUI: THE SEA block's chip opens the ledger's naval book.
 		if region_panel.has_signal("admiralty_requested"):
 			region_panel.admiralty_requested.connect(_open_admiralty)
@@ -1443,6 +1448,10 @@ func _update_map_from_game_state(game_state: Dictionary, played: bool = false) -
 		map_area.update_all_regions(game_state.map_data)
 	if map_area.has_method("update_naval_overlay"):
 		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
+	# Row FUN, FUN-2: every court's fear of France, for the "Who fears you" map mode.
+	if map_area.has_method("update_court_fear"):
+		map_area.update_court_fear(game_state.get("court_fear", {}), int(game_state.get("fear_line", 50)),
+			game_state.get("fear_house", []))
 	_update_admiralty_chip(game_state.get("naval_overlay", {}))
 	# "The Levy is Open" (econ spec review §6): nation-level, so it rides the
 	# summary's top level rather than every province — the region panel reads
@@ -11844,6 +11853,34 @@ func _on_order_card_diplomacy(nation: String) -> void:
 	diplomacy_wizard.open_for_nation(nation)
 
 
+func _on_order_card_peace(nation: String) -> void:
+	"""Row FUN, FUN-2 (November 26, 2026): the card's "Offer <court> peace now"
+	— instead of the capture that would erase the court or carry Europe past
+	the line of fear: that war's peace table where it is open (the war card's
+	own road, `_on_war_settlement_clicked`), else the Diplomacy window on the
+	court, whose peace rows come first in a war."""
+	if nation == "":
+		return
+	_clear_order_selection()
+	_update_war_panel_visibility()
+	var war_data = _find_war_data(nation)
+	if war_data != null:
+		var war_id := str(war_data.get("war_instance_id", ""))
+		if bool(war_data.get("settlement_available", false)) and war_id != "":
+			_on_war_settlement_clicked(war_id, nation)
+			return
+	if diplomacy_wizard != null and diplomacy_wizard.has_method("open_for_nation"):
+		diplomacy_wizard.open_for_nation(nation)
+
+
+func _on_region_peace_requested(nation: String) -> void:
+	"""Row FUN, FUN-2 (November 27, 2026): the province window's "Offer <court>
+	peace now" — the panel shuts, then the card's own road to the peace table."""
+	if region_panel:
+		region_panel.close_panel()
+	_on_order_card_peace(nation)
+
+
 func _on_order_card_take(province: String) -> void:
 	"""The card's "Storm it instead" (or a "Take <province>" chip): the order
 	that TAKES the province, on its own card — the storm's reckoning, its Send."""
@@ -14557,7 +14594,8 @@ var _ui5_calendar_label := ""
 var _map_mode_chip: Button = null
 var _ui5_quickload_pending := false
 
-const UI5_MAP_MODE_NAMES := {"blended": "Lands & rule", "political": "Political", "terrain": "Terrain"}
+const UI5_MAP_MODE_NAMES := {"blended": "Lands & rule", "political": "Political", "terrain": "Terrain",
+	"fear": "Who fears you"}   # row FUN, FUN-2: each court coloured by its fear of France
 const UI5_VERB_WORDS := [
 	["unfortify", "unfortify"], ["fortify", "fortify"], ["drill", "drill"], ["train", "drill"],
 	["repair", "repair"], ["build", "build"], ["watchtower", "watchtower"],
@@ -14890,7 +14928,10 @@ func _ui5_build_map_mode_chip(row: HBoxContainer) -> void:
 	_map_mode_chip.tooltip_text = ("Map view — click (or press %s) to change it.\n"
 		+ "Lands & rule: the nations' colours over the lay of the land\n"
 		+ "Political: the nations' colours alone\n"
-		+ "Terrain: the land alone") % Keys.key_name("map_mode")
+		+ "Terrain: the land alone\n"
+		+ "Who fears you: each country by its fear of France — pale is calm, amber is "
+		+ "nearing the line, red is past it (it may join a coalition against you); "
+		+ "slate is France and its vassals") % Keys.key_name("map_mode")
 	_map_mode_chip.pressed.connect(_on_map_mode_chip_pressed)
 	row.add_child(_map_mode_chip)
 	_ui5_refresh_map_mode_chip(_ui5_current_map_mode())

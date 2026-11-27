@@ -519,6 +519,14 @@ class TestWorldStateSerializationEnforcement:
         # ... and what France has learned of them (IC-15), only when held.
         world.learned = {"marshals": {"Mack": {"court": "Austria", "orders": ["Mack holds Swabia."],
                                                "turn": 4, "how": "captured"}}}
+        # Row FUN, FUN-2: Europe's fear of France is written only in a world the
+        # rules arm (an unarmed save stays byte-identical) — populated here so
+        # the census reads all three keys (`tests/test_fun2_conquest_with_a_cost.py`
+        # pins the round trip of an armed board and the absence on an unarmed one).
+        world.fear_rules = {"join": 50, "leave": 25, "fade": 2, "rises": 4}
+        world.court_grudges = {"Saxony": 56, "Russia": 12}
+        world.fear_book = {"causes": {"Saxony": [{"region": "Vienna", "amount": 24, "turn": 4}]},
+                           "faded": {}}
 
         instance_attrs = get_instance_attributes(world)
         serialized_keys = get_serialized_keys(world)
@@ -683,6 +691,8 @@ class TestRegionSerializationEnforcement:
         )
         region.controller = "France"
         region.garrison_strength = 5000
+        # Row FUN, FUN-2: the rising count is written only while it counts.
+        region.unheld_turns = 2
 
         instance_attrs = get_instance_attributes(
             region, private_exempt=self.PRIVATE_EXEMPT,

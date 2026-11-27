@@ -3249,6 +3249,8 @@ class TestS14E9:
         from backend.game_logic.dispatch import _build_diplomatic_events_section
         w = _r9_w
         with _r9_quiet():
+            # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+            w.fear_rules = None
             w.pending_dispatch_events = []
             from backend.game_logic import diplomacy as D
             D.declare_war(w, "Prussia", "Hanover")
@@ -3392,6 +3394,8 @@ class TestS14EX42:
     def test_the_rail_row_names_the_cost(self, _r9_w):
         from backend.game_logic import diplomacy as D
         w = _r9_w
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        w.fear_rules = None
         with _r9_quiet():
             D.declare_war(w, "Prussia", "Hanover")
         (row,) = [n for n in w.notifications.get_pending() if n.get("type") == "war_declared"]
@@ -13725,7 +13729,8 @@ class TestS14EX85:
         assert 'str(data.get("camp_note", ""))' in src
         i = src.index('str(data.get("camp_note", ""))')
         # Session UI-2: the garrison figure is led by its glyph (`Utils.bb_glyph("garrison", 16) + " Garrison: "`)
-        assert src.rindex('" Garrison: "', 0, i) > i - 700            # beside the garrison line
+        # FUN-2 (row FUN, Nov 26-27, 2026): the window was 700; the rising line's lines now sit between (919), so 1000
+        assert src.rindex('" Garrison: "', 0, i) > i - 1000           # beside the garrison line
         assert "Utils.COLOR_WARNING" in src[i:i + 300]
 
 # ========== S14f part 2 - merged from test_s14f_p2_table.py ==========

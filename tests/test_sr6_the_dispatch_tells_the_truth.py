@@ -582,6 +582,12 @@ def _peace_with_the_levy_open(world):
 class TestTheLevyYieldsOnceStated:
     """RS-D2."""
 
+    @pytest.fixture
+    def world(self, world):
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        world.fear_rules = None
+        return world
+
     def test_three_statements_then_the_ledger(self, world):
         """Score Finish Step 7b — a conscious flip of the floor, not of the
         rule. RS-D2's rule holds: three statements, then the levy leaves

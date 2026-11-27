@@ -541,7 +541,9 @@ def test_display_nation_names_cover_the_multiword_keys():
 
 def test_fill_mode_cycle_rides_the_single_uniform():
     source = _read(BASE_GD)
-    assert 'const MAP_FILL_MODE_ORDER: Array = ["blended", "political", "terrain"]' in source
+    # Row FUN, FUN-2 (November 26, 2026): a fourth mode, "Who fears you" (each court
+    # painted by its fear of France) — the same one uniform write and palette upload.
+    assert 'const MAP_FILL_MODE_ORDER: Array = ["blended", "political", "terrain", "fear"]' in source
     strengths_block = source.split("const MAP_FILL_MODE_STRENGTHS := {", 1)[1].split("\n}", 1)[0]
     assert '"blended": OWNER_FILL_STRENGTH' in strengths_block
     political = float(re.search(r'"political": ([0-9.]+)', strengths_block).group(1))

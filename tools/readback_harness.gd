@@ -90,6 +90,11 @@ var _out := {}
 var _fatal := ""
 var _t0 := 0
 var _typed_at := 0           # when the line was typed (the rest runs from here)
+# FUN2-27 (row FUN, Session FUN-2, November 27, 2026): the rest in ENGINE time —
+# the frames' own deltas, the clock the debounce Timer counts. Under the whole
+# suite's load the engine hands out catch-up frame time, and the 220 ms Timer
+# fired in 78 ms of wall clock: the wall-clock rest stays as a reading only.
+var _rest_engine_s := 0.0
 
 # The seeded history: the design's own six lines (§4's test).
 const SEEDED := ["Ney, attack Archduke Charles", "Ney, attack Mack", "Ney, march to Vienna",
@@ -282,6 +287,8 @@ func _history():
 	_typed_at = Time.get_ticks_msec()
 	_main.call("_on_command_text_changed", _input.text)
 	_out["r2_asked_at_once"] = _api.previews.size()
+	# the Timer started inside this frame's process_frame, so it counts this frame
+	_rest_engine_s = _main.get_process_delta_time()
 	_phase = "readback_type"
 
 
@@ -292,8 +299,10 @@ func _asked_or_waiting() -> bool:
 
 func _readback_type():
 	if _asked_or_waiting():
+		_rest_engine_s += _main.get_process_delta_time()   # the frame the Timer counts next
 		return
 	_out["r2_rest_ms"] = Time.get_ticks_msec() - _typed_at
+	_out["r2_rest_engine_ms"] = int(round(_rest_engine_s * 1000.0))
 	_out["r2_asked_after_rest"] = _api.previews.size()
 	_out["r2_asked_line"] = str(_api.previews[0][0]) if _api.previews.size() > 0 else ""
 	# a stale answer — the line it read is not the line now — is dropped

@@ -4607,6 +4607,8 @@ def _r9_world(_r9_boot):
     from backend.models.world_state import WorldState
     with _r9_quiet():
         w = WorldState.from_dict(json.loads(json.dumps(_r9_boot.to_dict(), default=str)))
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
     w.current_turn = 7
     w.nation_gold["France"] = 6000
     w.diplomatic_points = 5
@@ -5092,6 +5094,8 @@ def _r10_world(_r10_boot):
     from backend.models.world_state import WorldState
     with _r10_quiet():
         w = WorldState.from_dict(json.loads(json.dumps(_r10_boot.to_dict(), default=str)))
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
     w.current_turn = 4
     w.nation_gold["France"] = 6000
     w.diplomatic_points = 5
@@ -5546,7 +5550,10 @@ def _r11_boot():
 
 def _r11_copy(boot):
     from backend.models.world_state import WorldState
-    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+    w = WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
 
 
 def _r11_set(w, a: str, b: str, state: str) -> None:
@@ -7647,7 +7654,10 @@ class TestS14GX12:
         (charge,) = [e for e in events if e["type"] == "auto_glorious_charge"]
         text = charge["message"]
         assert "Vienna captured by France!" in text
-        assert ("\n[Alarm] Europe's alarm rises +18 — Won a battle +3, Captured an enemy "
+        # FUN-2 (row FUN, Nov 26, 2026; FUN2-1): on the armed 1805 board the charge's capture
+        # takes the province as the chokepoint does — "Conquered territory +2" with it (was +18).
+        assert ("\n[Alarm] Europe's alarm rises +20 — Conquered territory +2, Won a battle +3, "
+                "Captured an enemy "
                 "capital +15.") in text
         assert _r13_alarm_text(world) in text
         assert text.index("[Alarm]") < text.index("FREE ACTION")
@@ -8334,7 +8344,10 @@ def _r14_boot():
 def _r14_copy(boot):
     from backend.models.world_state import WorldState
     with _r14_quiet():
-        return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+        w = WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        w.fear_rules = None
+        return w
 
 
 @pytest.fixture

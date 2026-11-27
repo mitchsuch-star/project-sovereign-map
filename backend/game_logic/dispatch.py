@@ -762,6 +762,17 @@ def _crisis_cause_headline(cause: str) -> str:
     return crisis_cause_phrase(key)
 
 # Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
+# FUN-2 (row FUN, "conquest with a cost"): the league's two notes where fear
+# chooses the coalition (`fear.chooses`) — the table's own entries stay the
+# old rule's, read wherever the rules are off.
+_FEAR_LEAGUE_NOTES: Dict[str, str] = {
+    "league_joins": ("A country that fears us past the line marches, Sire — only an "
+                     "alliance or a truce keeps it out, and its fear falls while we "
+                     "take nothing."),
+    "league_paid": ("Gold buys a design's sleep, Sire, not a country's fear — fear alone "
+                    "decides who joins a coalition."),
+}
+
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # GE-3: every note is true for every instance of its class, and closes
     # on the decision the beat creates (the table's rule since WO-D6).
@@ -2110,7 +2121,11 @@ def _league_candidates(world, player_nation: str, window, _add,
             marching = [rows[r]["display"] for r in recipients
                         if (rows.get(r) or {}).get("status") in (_co.LEAGUE_JOINS,
                                                                  _co.LEAGUE_REFUSES)]
-            if marching:
+            if marching and any("fear" in (rows.get(r) or {}) for r in recipients):
+                # FUN-2: no price keeps a frightened court out — fear decides.
+                line += (f" {_join(marching)} would march in the next coalition — gold "
+                         f"does not change their fear of France.")
+            elif marching:
                 line += (f" {_join(marching)} would march in the next league — "
                          f"the Balance of Europe names the price to keep each out.")
         _add("league_paid", identity=f"league_paid:{turn}", line=line)
@@ -2125,7 +2140,21 @@ def _league_candidates(world, player_nation: str, window, _add,
                           and r.get("status") == _co.LEAGUE_BOUND)
     if told is not None:
         fresh = [n for n in majors_joining if n not in (told.get("joiners") or [])]
-        if len(fresh) == 1:
+        if len(fresh) == 1 and "fear" in rows[fresh[0]]:
+            # FUN-2: the league is chosen by fear here — say the fear, not relations.
+            row = rows[fresh[0]]
+            detail = _co.league_row_detail(world, row, forecast)
+            _add("league_joins", identity=f"league_joins:{fresh[0]}",
+                 line=(f"{row['display']} would now join a coalition against us — its "
+                       f"fear of France is {int(row.get('fear', 0))}. {detail}").strip())
+        elif fresh and all("fear" in rows[n] for n in fresh):
+            names = [rows[n]["display"] for n in fresh]
+            fears = _join([str(int(rows[n].get("fear", 0))) for n in fresh])
+            _add("league_joins", identity="league_joins:" + ",".join(fresh),
+                 line=(f"{_join(names)} would now join a coalition against us (fear of "
+                       f"France {fears}). An alliance or a truce keeps a country out; "
+                       f"fear falls while we take nothing."))
+        elif len(fresh) == 1:
             row = rows[fresh[0]]
             detail = _co.league_row_detail(world, row, forecast)
             _add("league_joins", identity=f"league_joins:{fresh[0]}",
@@ -6995,6 +7024,10 @@ def _build_intelligence_snapshot(world, player_nation: str) -> List[Dict[str, An
 # Event types relevant to the dispatch (player-visible turn events).
 # Acts as a WHITELIST: only these event types appear in the TURN EVENTS section.
 _DISPATCH_EVENT_TYPES = {
+    # Row FUN, FUN-2: a conquest of ours a turn from rising, and one that rose;
+    # a court that joined or left the league by its fear of France.
+    "province_restless", "province_rose",
+    "coalition_member_joined", "coalition_member_left",
     # Warning severity
     "supply_attrition", "bankruptcy_desertion",
     "occupation_abandoned", "cavalry_stance_forced",
@@ -7171,6 +7204,8 @@ def _build_turn_events(
 
         severity = "info"
         if event_type in ("supply_attrition", "bankruptcy_desertion",
+                          "province_restless", "province_rose",          # FUN-2
+                          "coalition_member_joined",                       # FUN-2
                           "occupation_abandoned", "cavalry_stance_forced",
                           "cavalry_fortify_forced", "fortify_decayed",
                           "fortify_collapsed", "counter_punch_expired",
@@ -7389,6 +7424,12 @@ def _pick_berthier_note(
     """
     # IQ-2: read once; None off-sandbox and for any standing realm.
     _realm = realm_collapse.get_collapse_state(world, player_nation)
+    if headline_class in ("league_joins", "league_paid"):
+        # FUN-2: where fear chooses the coalition, the old notes' "price" and
+        # "relations under −10" are false — Berthier says the rule that holds.
+        from backend.game_logic import fear as _fear_note
+        if _fear_note.chooses(world):
+            return _FEAR_LEAGUE_NOTES[headline_class]
     if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
         # IQ-2: the collapse headline is answered by the tier- and
         # forces-aware note (the table entry is only its census fallback).
@@ -9224,7 +9265,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         cost = declaration_cost_clause(
             int(template_vars.get("relation_cost", 0) or 0),
             str(template_vars.get("player") or "France"),
-            aggressor=str(nation))      # S14G-10: whose relations fall
+            aggressor=str(nation),      # S14G-10: whose relations fall
+            friends_of=(str(template_vars.get("friends_of") or "") or None))  # FUN-2
         if cost:
             text += f" — {cost}"
         return text + "."

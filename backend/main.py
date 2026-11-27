@@ -8455,11 +8455,15 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
             if take:
                 # Row PW: the order that takes a province — the one he STANDS
                 # in (`take=1`), or one within his reach, by name.
-                from backend.commands.order_quotes import take_quote
+                from backend.commands.order_quotes import take_quote, with_fear
                 named = "" if take in ("1", "here") else take
                 if named and world.get_region(named) is None:
                     return {"success": False, "message": f"Unknown province: {named}"}
-                return {"success": True, "quote": take_quote(world, subject, named)}
+                # Row FUN, FUN-2: a capture that erases a court or carries a
+                # court past the line of fear says so on the card.
+                return {"success": True, "quote": with_fear(
+                    world, subject, take_quote(world, subject, named),
+                    named or str(subject.location or ""))}
             if dest:
                 if world.get_region(dest) is None:
                     return {"success": False, "message": f"Unknown province: {dest}"}
@@ -8479,6 +8483,21 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
                     from backend.commands.order_quotes import landing_alts
                     _dest_quote["alts"] = _quote_alternatives(
                         lambda read: landing_alts(world, subject, str(_crossing["to"]), read))
+                # Row FUN, FUN-2: a march that takes the province on arrival
+                # says what the capture costs (the ground reading's `takes`).
+                _dest_ground = _dest_quote.get("ground") or {}
+                if _dest_ground.get("takes") is True:
+                    from backend.commands.order_quotes import with_fear
+                    _dest_quote = with_fear(world, subject, _dest_quote, dest)
+                elif (str(_dest_ground.get("code") or "") in ("takes_if_open", "garrison_unsure")
+                      or (str(_dest_ground.get("code") or "") == "enemy_corps"
+                          and _dest_ground.get("takes") is False)):
+                    # the province MAY fall to the march: said as a battle's ("if …").
+                    # An enemy corps standing there (the real-client press, Nov 27):
+                    # the card's "Attack him instead" chip sends the battle at once,
+                    # with no card of its own, so its price is said here, first.
+                    from backend.commands.order_quotes import with_fear
+                    _dest_quote = with_fear(world, subject, _dest_quote, dest, attack=True)
                 return {"success": True, "quote": _dest_quote}
             if enemy:
                 foe = world.get_marshal(enemy)
@@ -8495,6 +8514,11 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
                 from backend.commands.order_quotes import enemy_alts
                 _enemy_quote["alts"] = _quote_alternatives(
                     lambda read: enemy_alts(world, subject, foe, read))
+                # Row FUN, FUN-2: a battle that may take his province — the
+                # capture's cost said on the card ("If this attack takes …").
+                from backend.commands.order_quotes import with_fear
+                _enemy_quote = with_fear(world, subject, _enemy_quote,
+                                         str(foe.location or ""), attack=True)
                 return {"success": True, "quote": _enemy_quote}
             if ally:
                 friend = world.get_marshal(ally)
@@ -8514,6 +8538,17 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
         # Row IC, Session 2 (IC-7): "Look at it" — our corps that can scout
         # this province from where they stand.
         quoted["look"] = look_rows(world, region)
+        # Row FUN, FUN-2 (the real-client press, Nov 27): the panel's march and
+        # attack chips send at once, with no card — what the province falling
+        # would cost rides the same GET, said above them with the peace button.
+        try:
+            from backend.game_logic import fear as _fear
+            _erase = _fear.capture_warning(world, region, world.player_nation, attack=True)
+        except Exception as _exc:
+            _errors.report(_exc, "main.get_march_quotes_endpoint: fear.capture_warning")
+            _erase = None
+        if _erase:
+            quoted["erase"] = _erase
         # Row BA (BA-3): a day of battle open on this field rides the panel's
         # one GET — the same block the table reads.
         from backend.game_logic import battle_day as _day

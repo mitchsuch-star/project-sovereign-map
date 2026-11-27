@@ -228,6 +228,16 @@ from tests._fr2_seams import FR2_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in FR2_SEAMS_BY_ROW for spec in FR2_SEAMS_BY_ROW[row]]
 
+# Row FUN, Session FUN-2 "conquest with a cost" (November 26, 2026): Europe's
+# fear of France court by court, the league of the afraid, a declaration's
+# friends, the rising of unheld land, recruits from settled land, and the
+# reckless charge's capture as the chokepoint's (FUN2-1). A board recorded
+# before the session is replayed with them down. The seams' own rows:
+# `tests/_fun2_seams.py`.
+from tests._fun2_seams import FUN2_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in FUN2_SEAMS_BY_ROW for spec in FUN2_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

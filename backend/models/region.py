@@ -252,6 +252,10 @@ SUPPLY_BY_TYPE = {
 class Region:
     """A region on the game map."""
 
+    # FUN-2: written to a save only while it holds something (the played-world
+    # census reads this — `tests/test_serialization_played_world_census.py`).
+    KEPT_ONLY_WHEN_HELD_FIELDS = ("unheld_turns",)
+
     def __init__(
             self,
             name: str,
@@ -295,6 +299,10 @@ class Region:
 
         # Economy modifiers (Phase 6.2.C)
         self.stability: int = 100  # 0-100, affects income. Default 100 = Stable
+        # FUN-2 (row FUN, "conquest with a cost"): consecutive turns this
+        # province (France's by conquest) stood Hostile with no French troops
+        # in it — at the scenario's `rises` (4) it rises (`fear.tick_risings`).
+        self.unheld_turns: int = 0
         self.war_damage: float = 0.0  # 0.0-0.5, reduces income. Default 0.0 = pristine
 
         # Plunder/Secure & Buildings (Phase 6.2.E)
@@ -465,6 +473,8 @@ class Region:
             "garrison_strength": self.garrison_strength,
             "garrison_detachment": self.garrison_detachment,
             "stability": self.stability,
+            # FUN-2: only while counting (a save of a calm province is unchanged)
+            **({"unheld_turns": int(self.unheld_turns)} if self.unheld_turns else {}),
             "war_damage": self.war_damage,
             # Phase 6.2.E
             "plundered": self.plundered,
@@ -498,6 +508,7 @@ class Region:
         region.garrison_strength = data.get("garrison_strength", 0)
         region.garrison_detachment = data.get("garrison_detachment", False) or data.get("garrison_player_placed", False)
         region.stability = data.get("stability", 100)  # Default 100 for backward compat
+        region.unheld_turns = int(data.get("unheld_turns", 0) or 0)  # FUN-2
         region.war_damage = data.get("war_damage", 0.0)  # Default 0.0 for backward compat
         # Phase 6.2.E
         region.plundered = data.get("plundered", False)

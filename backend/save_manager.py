@@ -494,6 +494,9 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # DY-4 (docs/DYNAMISM_SPEC.md §5): a pre-Tier-6 save whose scenario NOW
     # authors the Awakening gains the store, every people at 0.
     _backfill_awakening(world)
+    # FUN-2 (row FUN, "conquest with a cost"): a pre-FUN-2 save whose
+    # scenario NOW authors the fear rules gains them, every court at 0.
+    _backfill_fear(world)
     # DY-6 (docs/DYNAMISM_SPEC.md §6): a pre-Tier-8 save whose scenario NOW
     # authors the crowns gains the store (the princes, the legitimists).
     _backfill_crowns(world)
@@ -910,6 +913,31 @@ def _backfill_awakening(world: WorldState) -> None:
         except (OSError, ValueError):
             continue
         _awakening.backfill(world, data)
+        return
+
+
+def _backfill_fear(world: WorldState) -> None:
+    """FUN-2 (row FUN, "conquest with a cost"): a pre-FUN-2 save of a scenario
+    that NOW authors the `fear` block gains the rules on load (the
+    `_backfill_awakening` idiom): every court's fear at 0, nothing
+    retroactive; a save carrying the rules is never overwritten."""
+    from backend.game_logic import fear as _fear
+    if _fear.armed(world):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        _fear.backfill(world, data)
         return
 
 

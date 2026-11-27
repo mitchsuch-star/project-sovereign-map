@@ -50,7 +50,10 @@ def world1805():
 
 @pytest.fixture()
 def world(world1805):
-    return WorldState.from_dict(world1805.to_dict())
+    w = WorldState.from_dict(world1805.to_dict())
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
 
 
 def _find_war(world, a: str, b: str):

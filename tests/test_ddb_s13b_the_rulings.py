@@ -208,7 +208,10 @@ class TestDDBX8:
     def quiet(self):
         from tests.test_sf_page_the_front_page_of_the_peace import _quiet_france
         with contextlib.redirect_stdout(io.StringIO()):
-            return _quiet_france()
+            world = _quiet_france()
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        world.fear_rules = None
+        return world
 
     def test_the_cheapest_keep_out_names_the_control(self, quiet):
         from backend.game_logic import coalition as CO

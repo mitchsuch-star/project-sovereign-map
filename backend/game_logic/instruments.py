@@ -776,7 +776,7 @@ def bargain_turns_left(world, payer: str, court: str) -> Optional[int]:
     return left
 
 
-def buyoff_league_clause(relation: Optional[int] = None) -> str:
+def buyoff_league_clause(relation: Optional[int] = None, world=None) -> str:
     """S14G-9 / S14G-D6 (RULED: the predicate stays, the sentence is said): the
     ONE sentence of what a buy-off does to a court's place in a league. A
     buy-off sleeps a court's DESIGN (what it wants) and warms its relations by
@@ -789,6 +789,12 @@ def buyoff_league_clause(relation: Optional[int] = None) -> str:
     sentence carries the arithmetic and says which of the three things is true
     of her today (already above the line, lifted past it by the +5 alone, or
     still under it); with none it is the bare sentence."""
+    # FUN-2: where fear chooses the coalition, relations decide nothing there.
+    if world is not None:
+        from backend.game_logic import fear as _fear
+        if _fear.chooses(world):
+            return ("a buy-off sleeps her design, but it does not change her fear of "
+                    "France, and fear alone decides whether she joins a coalition")
     from backend.game_logic.coalition import LEAGUE_KEEP_OUT_RELATION, _minus
     bar = _minus(LEAGUE_KEEP_OUT_RELATION)
     bonus = int(BUYOFF_RELATION_BONUS)
@@ -1607,10 +1613,24 @@ def licensed_war_cost_clause(world, payer: str, licensee: str, aim: str) -> str:
         return "0" if int(value) == 0 else f"{int(value):+d}"
 
     halved = f", halved by {lname}'s casus belli against {aname}" if casus else ""
-    text = (f"If {lname} then declares on {aname}, her relations with every "
-            f"court, {pname}'s included, fall {fall}{halved} "
-            f"({pname}–{lname} now {signed(now)}, {signed(after_compact)} once "
-            f"this compact is struck, {signed(final)} after her declaration)")
+    from backend.game_logic.diplomacy import declaration_angers, declaration_angers_friends
+    if declaration_angers_friends(world):
+        # FUN-2: her declaration angers the aim's friends and neighbours only
+        hit = payer in declaration_angers(world, licensee, aim)
+        if not hit:
+            return (f"If {lname} then declares on {aname}, her relations with "
+                    f"{aname}'s friends and neighbours fall {fall}{halved}; "
+                    f"{pname}'s are untouched ({pname}–{lname} now {signed(now)}, "
+                    f"{signed(after_compact)} once this compact is struck).")
+        text = (f"If {lname} then declares on {aname}, her relations with {aname}'s "
+                f"friends and neighbours, {pname}'s included, fall {fall}{halved} "
+                f"({pname}–{lname} now {signed(now)}, {signed(after_compact)} once "
+                f"this compact is struck, {signed(final)} after her declaration)")
+    else:
+        text = (f"If {lname} then declares on {aname}, her relations with every "
+                f"court, {pname}'s included, fall {fall}{halved} "
+                f"({pname}–{lname} now {signed(now)}, {signed(after_compact)} once "
+                f"this compact is struck, {signed(final)} after her declaration)")
     mission = _declaration_mission_hit(world, licensee, aim)
     if mission:
         text += (f"; the {MISSION_ROW_DISPLAY.get(mission, mission)} mission "
@@ -1639,15 +1659,22 @@ def _declaration_mission_hit(world, aggressor: str, aim: str) -> str:
     return mission_type if mission_type in _MISSION_EARNING_TYPES else ""
 
 
-def guarantee_honour_cost_clause() -> str:
+def guarantee_honour_cost_clause(world=None) -> str:
     """S14G-10 sweep: the later cost of the pledge, from the SAME penalties
     function as every declaration - honouring a guarantee means France declares
     on the aggressor (the pledge is abandoned unless she enters the war), and
     that declaration takes `declaration_relation_penalties` off France's own
     relations (halved after a rejected ultimatum)."""
-    from backend.game_logic.diplomacy import declaration_relation_penalties
+    from backend.game_logic.diplomacy import (
+        declaration_angers_friends, declaration_relation_penalties)
     direct, indirect = declaration_relation_penalties(False)
     half_direct, half_indirect = declaration_relation_penalties(True)
+    if world is not None and declaration_angers_friends(world):
+        # FUN-2: a declaration angers the target's friends and neighbours only.
+        return (f"Honouring it means declaring on the aggressor: France's relations "
+                f"fall {-direct} with that court and {-indirect} with its friends and "
+                f"neighbours ({-half_direct} and {-half_indirect} after a rejected "
+                f"ultimatum)")
     return (f"Honouring it means declaring on the aggressor: France's relations "
             f"fall {-direct} with that court and {-indirect} with every other "
             f"({-half_direct} and {-half_indirect} after a rejected ultimatum)")
@@ -1674,7 +1701,7 @@ def buyoff_quote(world, payer: str, court: str, *, title: str, amount: int) -> s
     # her place in one (the live relation, the one builder every surface calls)
     relation = int(world.nation_relations.get(world._make_diplo_key(payer, court), 0) or 0)
     league = (f"It buys the design's sleep, not her goodwill: "
-              f"{buyoff_league_clause(relation)}.")
+              f"{buyoff_league_clause(relation, world=world)}.")
     return (
         f"Buy off {name}'s design — {title}: {int(amount):,} gold and "
         f"{_quote_dp_words()}. The treasury holds {chest:,} gold{owed} and would "
@@ -1742,5 +1769,5 @@ def guarantee_quote(world, guarantor: str, protected: str) -> str:
         f"that covets their soil weighs our army in the scale — their "
         f"willingness falls by {GUARANTEE_WEIGHT_DETERRENT}. The pledge stakes "
         f"France's word: {clock} ({_quote_renege_words()}). "
-        f"{guarantee_honour_cost_clause()}. "
+        f"{guarantee_honour_cost_clause(world=world)}. "
         f"Guarantee them? (yes / no)")

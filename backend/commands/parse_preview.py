@@ -955,6 +955,26 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
         parts.append(_part("note", "too far for one move — he marches there"))
     if out["objection"] == "possible":
         parts.append(_part("warn", "he may object"))
+    # Row FUN, FUN-2 ("Erase this country?"): a capture that would erase a
+    # court or carry a court past the line of fear says so here too — the
+    # order card's warning in one part (`fear.capture_warning`'s `short`).
+    _fear_region, _fear_attack = "", False
+    if verb == "attack" and kind == "enemy" and entity is not None:
+        _fear_region, _fear_attack = str(getattr(entity, "location", "") or ""), True
+    elif verb in ("march", "move", "attack") and kind == "province":
+        _fear_region = str(entity or "")
+    if _fear_region:
+        try:
+            from backend.game_logic import fear as _fear
+            _warning = _fear.capture_warning(world, _fear_region, marshal.nation,
+                                             attack=_fear_attack)
+        except Exception as exc:
+            report(exc, "parse_preview._order_reading: fear.capture_warning")
+            _warning = None
+        if _warning:
+            _lead = (f"if he takes {_fear_region}, it" if _fear_attack
+                     else f"taking {_fear_region}")
+            parts.append(_part("warn", f"{_lead} {_warning['short']}"))
     # The arrival's object: a name on no roster, or a man out of sight
     # (UI6-X9), is dropped by the march's own reader (`dropped_arrival_note`,
     # whose rule is "in sight"); the readback says it in the same words.

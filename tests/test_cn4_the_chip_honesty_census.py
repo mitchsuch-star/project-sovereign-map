@@ -1324,6 +1324,17 @@ REVIEWED = {
     # (`diplomacy_requested` → `main._on_order_card_diplomacy`), sends nothing.
     ("order_confirm_card.gd", '"diplo:" + closed'):
         "the refused march's \"Ask <court> for open borders\": opens the Diplomacy window on that court and sends nothing — diplomacy is never typed (row FUN, FUN-1)",
+    # Row FUN, FUN-2 (November 26, 2026): the erase warning's "Offer <court>
+    # peace now" - the press closes the card and opens the peace table with
+    # that court (`peace_requested`); nothing is sent by the press.
+    ("order_confirm_card.gd", '"peace:" + court'):
+        "the erase warning's \"Offer <court> peace now\": closes the card and opens the peace table with that court, sends nothing (row FUN, FUN-2)",
+    # Row FUN, FUN-2 (the real-client press, November 27, 2026): the same button
+    # on the province window, above its march and attack chips (which send at
+    # once, with no card): the panel shuts and the card's road opens the peace
+    # table (`peace_requested` -> `main._on_region_peace_requested`).
+    ("region_panel.gd", '"peace:" + court'):
+        "the province window's \"Offer <court> peace now\" beside the price of the province falling: shuts the panel and opens the peace table with that court, sends nothing (row FUN, FUN-2)",
     # THIS DEAL's "Take <province>" beside a province an ally only occupies:
     # the guided table's own demand row for it (`plain_deal.allies_hand_back[]
     # .claims[]`, built from the court's `demand_suggestions`), sent as any

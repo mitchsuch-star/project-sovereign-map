@@ -2977,6 +2977,12 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if (new_state in ("PEACE", "VASSAL")
             and old_state in ("WAR", "ARMISTICE")
             and reason != "nation_eliminated"):
+        # FUN-2: a court booked "faded home" loses the mark once its war
+        # with France ends (the peace term reads only a war that runs).
+        _player_now = getattr(world, "player_nation", None)
+        if _player_now in (nation_a, nation_b):
+            from backend.game_logic import fear as _fear
+            _fear.clear_faded(world, nation_b if nation_a == _player_now else nation_a)
         _coalition = getattr(world, "active_coalition", None)
         if _coalition:
             _tgt = _coalition.get("target_nation") or getattr(
@@ -10268,6 +10274,15 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # proposals. Never negative.
     court_favour_value = int(court_favour_mod(world, proposal))
 
+    # ── FUN-2: a court whose fear of France faded it out of a league ──
+    # Standalone additive term (the court-favour shape): +25 on France's
+    # peace to a court the fear rules booked "faded home" while their war
+    # runs. 0 everywhere else, and in every unarmed world.
+    fear_faded_value = 0
+    if proposal_type in ("peace", "white_peace", "armistice_losing", "armistice_winning"):
+        from backend.game_logic import fear as _fear
+        fear_faded_value = int(_fear.peace_readiness(world, proposer, target))
+
     # ── Sum ──
     raw_score = (
         base
@@ -10281,6 +10296,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + respected_estate_value
         + agenda_mod_value
         + court_favour_value
+        + fear_faded_value
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -10430,6 +10446,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "anti_renewal_turns_remaining": int(anti_renewal_turns_remaining),
     }
     components["court_favour_mod"] = int(court_favour_value)
+    if fear_faded_value:
+        components["fear_faded_mod"] = int(fear_faded_value)   # FUN-2
     components["coalition_loyalty"] = int(coalition_loyalty)
     components["coalition_bond"] = int(coalition_bond)
     components["crown_recognition"] = int(crown_recognition)
@@ -10491,6 +10509,8 @@ _COMPONENT_LABELS = {
     "reliability_modifier": "Our diplomatic reputation",
     # IQ-4 PR-D3: the Court's Favour
     "court_favour_mod": "Talleyrand's courting",
+    # FUN-2: a court whose fear faded it out of a league
+    "fear_faded_mod": "Her fear of France has faded",
     "bargain_value_mod": "A war bargain offered",
     "bargain_conflict_penalty": "A bargain that conflicts with this court",
     "settlement_gratitude_mod": "Gratitude for a recent reward",
@@ -10551,6 +10571,7 @@ _FEEDBACK_TRACKABLE = frozenset({
     "respected_estate_mod",
     "agenda_mod",
     "court_favour_mod",
+    "fear_faded_mod",
     "bargain_value_mod", "bargain_conflict_penalty",
     "harshness_penalty", "harshness_bonus", "reliability_modifier",
     "military_supremacy", "battlefield_diplomacy", "military_pressure",
@@ -11250,7 +11271,46 @@ def declaration_cost_to_player(world, aggressor: str, target: str,
     player = getattr(world, "player_nation", "France")
     if not aggressor or player in (aggressor, target):
         return 0
+    # FUN-2: where the friends rule holds, France pays only as one of the
+    # target's friends or neighbours (`declaration_angers`).
+    if declaration_angers_friends(world) and player not in declaration_angers(
+            world, aggressor, target):
+        return 0
     return int(-declaration_relation_penalties(casus_belli)[1])
+
+
+def declaration_angers_friends(world) -> bool:
+    """FUN-2 (row FUN, "conquest with a cost"): in a world whose scenario arms
+    the fear rules, a declaration's indirect penalty falls on the target's
+    friends only (`fear.a_declaration_angers_the_targets_friends`)."""
+    from backend.game_logic import fear as _fear
+    return bool(_fear.armed(world) and _fear.a_declaration_angers_the_targets_friends())
+
+
+def declaration_angers(world, aggressor: str, target: str) -> List[str]:
+    """The courts a declaration's indirect penalty (`declaration_relation_
+    penalties`' second figure) falls on, in `get_active_nations` order.
+    Unarmed (or the seam down): every court that is neither party, as ever.
+    FUN-2: the target's allies, its own house (its clients, or its lord and
+    fellow clients) and the courts bordering it — never the aggressor's own
+    clients or allies. Both sides' wars (`declare_war` is the one function)."""
+    nations = [n for n in world.get_active_nations() if n not in (aggressor, target)]
+    if not declaration_angers_friends(world):
+        return nations
+    neighbours = set(world.get_neighbouring_nations(target)) if target else set()
+    target_house = (world._top_overlord(target) or target) if target else ""
+    aggressor_house = (world._top_overlord(aggressor) or aggressor) if aggressor else ""
+    out: List[str] = []
+    for n in nations:
+        house = world._top_overlord(n) or n
+        friend = (n in neighbours or world.are_allies(target, n)
+                  or (bool(target_house) and house == target_house))
+        if not friend:
+            continue
+        if house == aggressor_house or world.are_allies(aggressor, n):
+            continue
+        out.append(n)
+    return out
 
 
 # S14E-X38: what `break_treaty` takes off the BREAKER's relation with every
@@ -11295,7 +11355,8 @@ def downgrade_cost_to_player(world, actor: str, other: str, relation_all: int) -
 
 
 def declaration_cost_clause(cost: int, player: str = "France",
-                            aggressor: Optional[str] = None) -> str:
+                            aggressor: Optional[str] = None,
+                            friends_of: Optional[str] = None) -> str:
     """"Prussia's relations with every court, France's included, fall 15" — the
     clause the declaration beat (dispatch AND rail) appends; "" at a cost of 0.
 
@@ -11313,6 +11374,11 @@ def declaration_cost_clause(cost: int, player: str = "France",
     from backend.display_names import display_nation, with_definite_article
     subject = (f"{with_definite_article(display_nation(str(aggressor)))}'s "
                if aggressor else "")
+    if friends_of:
+        # FUN-2: the friends rule — the courts are the target's friends and
+        # neighbours, not every court.
+        return (f"{subject}relations with {display_nation(str(friends_of))}'s friends "
+                f"and neighbours, {display_nation(player)}'s included, fall {int(cost)}")
     return (f"{subject}relations with every court, {display_nation(player)}'s "
             f"included, fall {int(cost)}")
 
@@ -11526,6 +11592,10 @@ def declare_war(
 
     # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
     set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
+    # FUN-2: a court booked "faded home" starts any NEW war with France unbooked
+    if getattr(world, "player_nation", None) in (aggressor, target):
+        from backend.game_logic import fear as _fear_war
+        _fear_war.clear_faded(world, target if aggressor == world.player_nation else aggressor)
 
     # Penalties (halved with casus belli from rejected ultimatum)
     penalty_factor = 0.5 if casus_belli else 1.0
@@ -11540,11 +11610,11 @@ def declare_war(
 
     # Penalty with ALL other nations (also halved with casus belli) —
     # `indirect_penalty` from `declaration_relation_penalties` above.
-    all_nations = world.get_active_nations()  # DLF-11
-    for nation in all_nations:
-        if nation != aggressor and nation != target:
-            world.modify_nation_relation(aggressor, nation, indirect_penalty)
-            relation_changes.append({"nations": (aggressor, nation), "delta": indirect_penalty})
+    # FUN-2: in an armed world, the target's friends and neighbours only
+    # (`declaration_angers` — every other court as before when unarmed).
+    for nation in declaration_angers(world, aggressor, target):
+        world.modify_nation_relation(aggressor, nation, indirect_penalty)
+        relation_changes.append({"nations": (aggressor, nation), "delta": indirect_penalty})
 
     # Coalition threat: +20 for declaring war, halved with casus belli
     # (§2a, S5c). AI-4a step 5: keyed to the AGGRESSOR — any declarer's
@@ -11873,13 +11943,16 @@ def declare_war(
         )
     # S14E-9: and what it costs France, when it is a third power's war.
     _cost = declaration_cost_to_player(world, aggressor, target, casus_belli)
+    # FUN-2: the clause names whose friends pay, where the friends rule holds.
+    _friends_of = _court_named(world, target) if declaration_angers_friends(world) else ""
     if _cost:
         # S14G-10: and WHOSE relations fall - the aggressor's, by the court's
         # current name (`_court_named`)
         war_message = (war_message.rstrip(".") + " — "
                        + declaration_cost_clause(
                            _cost, world.player_nation,
-                           aggressor=_court_named(world, aggressor)) + ".")
+                           aggressor=_court_named(world, aggressor),
+                           friends_of=_friends_of or None) + ".")
     world.notifications.add(create_notification(
         WAR_DECLARED,
         NotificationPriority.HIGH,
@@ -11903,6 +11976,8 @@ def declare_war(
                             # S14E-9: the beat names its cost to France.
                             "relation_cost": int(_cost),
                             "player": str(world.player_nation),
+                            # FUN-2: whose friends pay (absent = every court).
+                            **({"friends_of": str(_friends_of)} if _friends_of else {}),
                         },
                         "always" if a_declaration_of_war_is_public() else "partial_on_nation")
 
@@ -16968,7 +17043,7 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
             _rel = int(world.nation_relations.get(
                 world._make_diplo_key(player, target_nation), 0) or 0)
             buyoff_detail += (f" It buys the design's sleep, not her goodwill: "
-                              f"{buyoff_league_clause(_rel)}.")
+                              f"{buyoff_league_clause(_rel, world=world)}.")
             _next = next_design_after_buyoff(world, player, target_nation)
             if _next:
                 buyoff_detail += (f" Buying it wakes {_next['title']} next "
@@ -17003,7 +17078,7 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         f"(-{int(GUARANTEE_WEIGHT_DETERRENT)} weight) — and stakes "
         "French credibility on the pledge being honoured. "
         # S14G-10 sweep: and what honouring it costs - the quote's own sentence
-        f"{guarantee_honour_cost_clause()}.")
+        f"{guarantee_honour_cost_clause(world=world)}.")
     # SF-LB-2 (SCORE_FINISH_SPEC §6.4): where this court is a defenceless
     # prize, the chip says whose reach the pledge lifts it out of — the
     # same predicate the war council opens on.

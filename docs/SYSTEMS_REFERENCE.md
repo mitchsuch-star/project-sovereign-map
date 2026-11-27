@@ -19078,3 +19078,181 @@ modifier applied within 1e-9, and `consume=False` spends nothing. Four rows were
 - **Open:** FUN1-11, a blockade over a strait in another sea — FUN-5's (`tests/test_fun5_the_sea_made_plain.py`,
   strict). The probe gains a right click on an enemy (his attack card), ground beside an enemy (the province's), the
   tag's side on a road heading west, and refuses an empty hover as agreement.
+
+## §240 Row FUN, Session FUN-2 — CONQUEST WITH A COST: every court's fear of France, the league of the afraid, a declaration's friends, the "erase this country?" card, land that must be held (November 26, 2026)
+
+> The user's second play (November 25, 2026): "I beat Austria in the first war by eliminating them and got to keep
+> all the land, then a coalition of every country formed later." The review `docs/GAMEPLAY_REVIEW_2026_11_25.md`
+> §1.3; the plan approved in Plan Mode (the brief's forks kept, each one line to reverse — the plan file's
+> "Decisions kept"); the rules `backend/game_logic/fear.py`; the test `tests/test_fun2_conquest_with_a_cost.py`;
+> the seams `tests/_fun2_seams.py`; the ledger `BUG_FIXES.md` §"Row FUN, Session FUN-2".
+
+### 240.1 Armed by the campaign's own file
+- The 1805 campaign's top-level `"fear": {"join": 50, "leave": 25, "fade": 2, "rises": 4}` arms every FUN-2 rule
+  (`fear.armed`, `fear.chooses`); `modding/validator.py` `_validate_fear` clamps it (`fear._BOUNDS`). The bare flag
+  world, the tutorials and the legacy map author none and keep the old rules byte for byte (the Awakening's
+  precedent). A pre-FUN-2 save of the campaign gains the rules on load (`save_manager._backfill_fear`), every court
+  at 0.
+- Store: `world.court_grudges` `{court: int 0–100}` (the player reads "fear of France"), `world.fear_rules`,
+  `world.fear_book` (`causes` — each court's last three captures it minds; `faded` — courts that left a league by
+  fading). Written to a save only in an armed world (`SAVE_FORMAT_REFERENCE.md`). `Region.unheld_turns` (written
+  only while counting).
+
+### 240.2 The write — 8 × nearness × stake
+- At the capture chokepoint (`WorldState.capture_region`, read BEFORE the controller moves, applied under the +2
+  threat's own three skips — own soil, a recovered title, a liberation) and its one mirror (the reckless charge,
+  FUN2-1): each capture by France's HOUSE (France and its clients, `alarm.house_leader`) adds to every other active
+  court `8 × nearness × stake`, rounded: nearness 1 for the loser and the courts next to it (`fear.loser_neighbours`
+  — next to its HOMELAND, whoever holds it now, and to what it holds today), ½ with one court between (France's house
+  is never the court between), ¼ farther; stake ×2 for a court that lost the province (its holder or boot owner) or
+  wants it (an acquire design, read as authored), ×3 for a capital. So 8 / 4 / 2, 16 / 8 / 4, 24 / 12 / 6; capped at
+  100. Taking back the house's own soil, or land passing inside the house, frightens nobody; a computer court's
+  capture writes nothing here (its push-back is the Alarm, DY-1). Another court's client keeps no fear of its own
+  (it cannot join a coalition); land taken from nobody measures nearness from the province's own neighbours.
+- Fades 2 a turn at the head of `process_coalition_turn` (step 0); a court at 0 leaves the store.
+- Measured on the boot board: erasing Austria (seven provinces, Vienna last) leaves Saxony, Russia and the
+  Ottomans at 72, Bavaria at 80 (it wants the Tyrol), Prussia, Spain, Sweden, Naples and Hesse at 36, Britain and
+  the far courts at 18.
+
+### 240.3 The league of the afraid (`coalition.py`)
+- `qualifies_for_coalition`, the player's target in an armed world: fear past `join` (50) AND a border with France's
+  house (`fear.borders_house` over `get_neighbouring_nations`, sea links included) or a stake (`awakening.
+  held_by_house` > 0, or a design province France's house holds) AND never France's ally. The predicate's other
+  clauses stay its own (`_league_bars`: a vassal, at war, a truce's cooldown, the Congress spares her; then a fresh
+  peace); a Congress refuser still qualifies whatever her fear. `relation_shift` moves nothing there. Other targets
+  (the eclipse leagues) keep relations below −10.
+- Courts already at war join a FORMING league only with a border or a stake (`_league_at_war_members`). A league
+  against France needs THREE (`fear.league_min`; the brew holds only while it could form three, and cancels
+  otherwise). The members that declared BY FEAR are recorded, `active_coalition["by_fear"]` — read before any
+  declaration moves a relation; a Congress refuser marches for the Congress and is never booked by fear.
+- Step 7c of the tick: `fear.faded_home` (a by-fear member under `leave` (25) leaves —
+  `remove_coalition_member(reason="fear_faded")`: its notice says no peace was signed, no "betrayal" −15 falls on
+  it, and the league's own events (a dissolution) ride the tick — and is booked ready for France's peace:
+  `calculate_acceptance`'s `fear_faded_mod` +25 while their war runs and it stands outside a coalition; a new war
+  with France or a rejoin clears the mark; France's own wars are never ended without France's word), then
+  `fear.standing_joins` (every court that qualifies while a league against France stands joins it —
+  `join_coalition`, its own declaration). The boot Third Coalition records no `by_fear`:
+  its members fight for their own reasons and never fade home.
+- `league_forecast` / `league_rows` / `league_row_text` speak in fear for the player's target ("Saxony — fear of
+  France 72 (past 50) and she borders us: she would join. She joins the league that stands at the end of this turn.
+  Her fear falls 2 a turn while we take nothing; an alliance or a truce with her keeps her out."); no relation price
+  is quoted (relations no longer keep a court out); the clock gathers nothing while the joiners are fewer than three
+  (`too_few`); a court that stays out says why (`fear.why_out`: our ally; a truce, a fresh peace or the Congress binds
+  her; another court's vassal; no border and no stake; N more fear would bring her in).
+  `declaration_would_gather_a_league` asks for three too, counting the declaration's own target once it borders us.
+
+### 240.4 A declaration angers the target and its friends (`diplomacy.declare_war`)
+- `declaration_angers(world, aggressor, target)`: in an armed world the −15 (−7 with a reason for war) falls on the
+  target's allies, its own house (its clients, or its lord and fellow clients) and the courts bordering it — never
+  the aggressor's own clients or allies; every court as before elsewhere. One function, both sides' wars.
+  `declaration_cost_to_player` is 0 unless France is among them; `declaration_cost_clause(friends_of=…)` says
+  "Prussia's relations with Hanover's friends and neighbours, France's included, fall 15" (the notice and the
+  dispatch beat, `friends_of` stamped on the beat).
+
+### 240.5 "Erase this country?" (the card, the typed line)
+- `fear.capture_warning(world, region, capturer, attack=False)` → `{court, court_shown, last, joiners, crossing,
+  when, line, short, peace_label}` when a capture would take a court's LAST province (never a client's — a client
+  stays a court with none) or carry a court past the line ("Taking Bohemia would make Saxony fear France past 50, enough to join the Third Coalition against us at the end of this turn." — or, of a court that would still stay out, "… past 50. Bavaria would still stay out: she is our ally.");
+  None otherwise (and in an unarmed world). The joiners are courts that would newly qualify once it lands
+  (the predicate's own exclusions as they stand, `coalition.league_excluded`; the border or stake the capture itself
+  opens). "When": a league stands → "at the end of this turn"; else by the alarm after the capture (≥ 80 "at the end
+  of this turn"; ≥ the brewing gate "in about 3 turns"; else "once France's alarm reaches 60 (it would be N)"); fewer
+  than three → "but a coalition needs 3 countries and only N would stand against us, so not yet".
+- `order_quotes.with_fear` puts it on the quote (`erase`) and opens the card (`confirm`): the take quote, a march
+  whose ground reading takes the province, an attack ("If Vienna falls, it erases Austria."), all on
+  `GET /march_quotes` (a march whose province MAY fall — `takes_if_open`, `garrison_unsure` — says it as a battle's
+  "If … falls"; so does a march onto a province where an enemy corps stands — `enemy_corps`, `takes` False —
+  whose card offers "Attack <him> instead", a chip that sends the battle at once with no card of its own: the
+  real-client press, November 27). The province window's one GET (`/march_quotes?region=`) carries the same
+  `erase` (`capture_warning(..., attack=True)`), drawn by `region_panel.gd` `erase_lines` above its march,
+  army and attack chips — which send at once — with the same peace chip (`peace_requested` →
+  `main._on_region_peace_requested`: the panel shuts, then the card's road). `parse_preview._order_reading` adds the `short` form as a `warn` part (the typed line; a
+  directive's rows inherit it). The card (`order_confirm_card.gd` `_erase_lines`) draws it second, red when it
+  erases a court or names joiners, with the chip "Offer Austria peace now" → `peace_requested` → `main.gd`
+  `_on_order_card_peace`: the war's peace table where it is open (`_on_war_settlement_clicked`), else Diplomacy on
+  that court.
+
+### 240.6 Land must be held (`process_stability_growth`, `fear.tick_risings`)
+- A province France ITSELF holds by conquest (`province_title` kind conquest, boot owner outside France's house),
+  Hostile (≤ 25), with no French corps and no garrison in it (`fear.is_held`) does not settle (+0, not +5) and counts
+  `unheld_turns`; at `rises` (4) it rises (`fear.rise`): to its boot court if that court stands, else to the court
+  France took it from, else its erased boot court RISES AGAIN in it (the plan's decision 6 — no new "rebel" holder);
+  stability 50, a garrison of 3,000, the title, the record (`count_capture`), the war scores. Clients' and computer
+  courts' conquests never rise (their bound is the hand-back rule). The morning a turn short says so
+  (`province_restless`); the rising is `province_rose` (the dispatch, the campaign log: 195 → 197 with
+  `coalition_member_joined`).
+- `map_data` carries `rises_in` / `rises_to` for an unheld Hostile conquest of ours (the fog filter passes them for
+  our own provinces); the province window (`region_panel.gd` `rising_line`) says "Hostile: it pays no taxes and gives
+  no recruits. With none of our troops here it rises in 2 turns — back to Austria. Leave a corps or a garrison here to
+  hold it.", and the stability line names its stage. The line leads the window, with the figures, before ACTIONS
+  (`rising_lead`; at 1600 × 900 it had sat under RECRUIT and Build, below the fold — the press, November 27), and
+  the map's hover says it too ("No troops here: it rises in 4 turns, back to Austria", `map_renderer_base.gd`).
+- Recruits: `get_manpower_regen_rates` counts a province's plains, stables and arsenal bonuses only from Settling
+  (51+), every court alike (recruiting AT a province already needed 51+).
+
+### 240.7 Who fears you (the map, the Balance of Europe)
+- The summary's `court_fear` `{court: int}`, `fear_house` (France and its vassals) and `fear_line`; the fourth map
+  mode, "Who fears you" (`M` / the chip; `map_renderer_base.gd` `fear_color`: calm parchment, amber toward the line,
+  red past it, France's house slate, any other holder a neutral grey — one palette upload; skipped in a world that
+  sends no fear, and left for the first mode when a loaded world sends none).
+- The Balance of Europe tab's WHO FEARS YOU block (`diplomatic_ledger.py` `fear_rows` / `fear_line` /
+  `fear_footer` → `diplomatic_ledger.gd` `_fear_block`): each court that fears us — flag, name, a meter, the figure,
+  then "would join a coalition" or why it stays out ("she is our ally", "she neither borders us nor lost or wants
+  land we hold", "17 more fear would bring her in", "she already fights us in the coalition"), and "alarmed by our
+  taking Tyrol, Vienna".
+- The Codex: "Fear" added; "Coalition", "Threat", "Stability" and "Alarm of Europe" rewritten in plain words.
+- The sibling texts that told the old rule now tell this one where it holds: the buy-off clause ("it does not change
+  her fear of France"), the guarantee's and the sponsorship's declaration cost ("with its friends and neighbours"),
+  the Armed Peace's levers line, the dispatch's league headlines and Berthier's two league notes
+  (`dispatch._FEAR_LEAGUE_NOTES`); the stables chip reads the settled land the rate pays on.
+
+- The footer (`fear.league_footer`) and the Codex's "Coalition" say the rule as one "unless … or …": "A country whose
+  fear passes 50 joins a coalition against us — unless it is our ally, our vassal or under truce with us, or it
+  neither borders us (or one of our vassals) nor lost or wants land we hold. A coalition needs 3 countries." (the
+  blind reading, November 27: the old "if it borders us … — never an ally …" was read by one reader of three as
+  needing BOTH an alliance and no border). The Cabinet's forecast rows (`coalition._fear_row_text`) say "coalition"
+  and "countries" (FUN2-23); a member that fades home is told once (`fear.faded_home` drops the league's plain
+  "has left the coalition" line and keeps its other events — FUN2-22).
+
+### 240.8 The measure (the rule written before the data — `tools/_fun2_measure.py`, record `tools/_fun2_measure_2026_11_26.json`)
+- **(a)** On the ten ambient seeds France erases Austria by turn 20 — its field armies beaten on turn 3 (an
+  Austerlitz: unbeaten, the corps in each province retook it the next morning — the first two runs, kept in the
+  record's notes), then a province a turn from turn 4, a garrison left in each, the capital last; the rest of Europe
+  played by the computer. A coalition stands against France on **10 of 10** seeds (Austria gone by turn 9–11) and no
+  country that entered one lacks a border or a stake; the Ottomans and Saxony entered by fear on every seed (the
+  stricter reading, reported: 10 of 10).
+- **(b)** France takes only its war aim (Vienna, turn 6, held): no new coalition and no country joining by fear
+  through turn 30 on **10 of 10** (bar 7).
+- **(c)** The France band on the commanded arms (`tools/_fun2_band_measure.py`, record
+  `tools/_fun2_band_2026_11_26.json`), reported, never gated: **28 / 28 / 25** (arm 0, every FUN-2 seam down, reads
+  28 / 28 / 26 — row FR-2's standing reading).
+- **(d)** The forty-turn series (`tools/_fun2_series_arms.py`, record `tools/_fun2_series_arms_final.json`):
+  unchanged on all nine arms (0, ALL and each seam alone or paired), so `BASELINE_SERIES` is not re-pinned; the
+  MIRROR seam (the reckless charge's capture) is not reached on the series' board.
+
+### 240.9 Pressed in the real client, read blind, reviewed
+- **The press** (`tools/dd_b_play.py` on 8006, a crafted save — Austria down to Vienna, the Tyrol taken and left
+  empty — at 5120 × 1377 scale 1.8 and 1600 × 900 scale 2.0): the read-back, the march and attack cards, the peace
+  button (the Cabinet on Austria, peace first), WHO FEARS YOU, the map view, the province windows, the hover. Found
+  and fixed: FUN2-20 (the march card's "Attack <him> instead" sent the battle unwarned), FUN2-21 (the province
+  window's chips sent unwarned), FUN2-25 (the hover had no count), FUN2-26 (the rising line below the fold at
+  1600 × 900). The commit hook's first run (43,906 passed, 2 failed) added FUN2-27 — a read-back timing pin
+  that read the wall clock while the debounce counts engine frame time (now read in engine time) — and a
+  census catch: two new tests swapped the parser's `world`, which it does not hold (dead lines, removed).
+- **The blind reading** (the key written first; six questions; bar 5 of 6 and no answer reading a rule the game does
+  not have; fresh Explore readers on Sonnet, the texts generated from the code): reader 1 6/6; reader 2 5/6 with the
+  stay-out rule misread — the bar MISSED for that reader, FUN2-24; the words changed; reader 3, fresh, on the new
+  words 6/6.
+- **The review** (three lanes on a frozen copy; two repair workflows over the first full run's failures): FUN2-2 …
+  FUN2-19 (`BUG_FIXES.md`), none open.
+
+### 240.10 Tests
+- `tests/test_fun2_conquest_with_a_cost.py` (65): the store and its save, the write (8/4/2, the stake, the capital, the
+  skips, unowned land), the league (border or stake, three, the standing league, the faded member told once, a
+  Congress refuser never booked by fear, the at-war filter), the declaration's friends, the card and the province
+  window (the last province, the joiners, when, the crossing, a client's province, the defended march, the panel's
+  GET and its peace chip), the rising (four turns, troops, a capture, the court risen again and erased again), the
+  charge's mirror, the recruits, the surfaces (the ledger rows, the footer's "unless … or …", the map, the Codex, the
+  hover), the shipped app's endpoints on the armed board, the seams.
+- `tests/test_fun2b_peace_terms_priced.py`: FUN-2b's three strict pins and the plain test (a total cession of Austria
+  at the bilateral table is refused at any war score).

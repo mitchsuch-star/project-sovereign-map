@@ -48,7 +48,10 @@ def _quiet():
 
 def _boot() -> WorldState:
     with _quiet():
-        return WorldState.from_scenario(SCEN)
+        w = WorldState.from_scenario(SCEN)
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
 
 
 def _quiet_france(turn=20, threat=45, quiet=11, rel=-50) -> WorldState:
@@ -588,6 +591,8 @@ def shipped(monkeypatch):
     M._reset_world_state()
     monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
     world = M.world
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    world.fear_rules = None
     france = world.player_nation
     world.active_coalition = None
     world.coalition_brewing = None
@@ -1112,8 +1117,20 @@ class TestTheDrivenArms:
         import tools._score_probes as SP
         import tools.score_run as SR
         arms = SR.load_arms(run)
-        quoted, flips, bad = SP._c5_quoted_levers_flip(arms, {"run_dir": run, "arms": arms},
-                                                       {n: 0 for n in arms})
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        _load = SP._load_world
+
+        def _unarmed(ctx, path):
+            w = _load(ctx, path)
+            w.fear_rules = None
+            return w
+
+        SP._load_world = _unarmed
+        try:
+            quoted, flips, bad = SP._c5_quoted_levers_flip(
+                arms, {"run_dir": run, "arms": arms}, {n: 0 for n in arms})
+        finally:
+            SP._load_world = _load
         assert quoted > 0 and flips == quoted and not bad, (quoted, flips, bad, c5["evidence"])
         assert "0 quoted keep-out levers" in str(c5.get("evidence") or "") or not c5["measured"], c5
 

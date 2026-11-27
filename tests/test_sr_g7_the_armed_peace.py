@@ -37,6 +37,8 @@ def _quiet_france(turn: int = 20, threat: int = 30, quiet_turns=None):
     QUALIFY), and nobody has fought for `quiet_turns` turns (default: never
     since the boot, so quiet == turn)."""
     world = WorldState.from_scenario(str(SCENARIO))
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    world.fear_rules = None
     france = world.player_nation
     world.current_turn = turn
     world.active_coalition = None

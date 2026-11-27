@@ -58,6 +58,8 @@ class TestAFreshPeaceIsNotMarchedBackOut(unittest.TestCase):
 
     def setUp(self):
         self.world = _europe()
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        self.world.fear_rules = None
         self.world.current_turn = 20
         # Britain is hostile and at PEACE — exactly the post-settlement shape.
         self.world.nation_relations[
@@ -918,6 +920,8 @@ class TestTheReviewRoundsSecondLens(unittest.TestCase):
         from backend.game_logic.diplomacy import (cleanup_war_end,
                                                   set_diplomatic_state)
         world = _europe()
+        # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+        world.fear_rules = None
         world.current_turn = turn
         set_diplomatic_state(world, "France", "Britain", "PEACE",
                              "treaty_ratification")

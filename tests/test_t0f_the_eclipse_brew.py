@@ -69,7 +69,10 @@ def _board():
 
 @pytest.fixture
 def world(_board):
-    return WorldState.from_dict(_board)
+    w = WorldState.from_dict(_board)
+    # FUN-2 (row FUN, Nov 26, 2026): this pin reads the relation rule of an unarmed world; the 1805 campaign's fear rules are pinned in tests/test_fun2_conquest_with_a_cost.py
+    w.fear_rules = None
+    return w
 
 
 def _everyone_warm_to(world, target, but=()):

@@ -1,4 +1,43 @@
-# NEXT SESSION PROMPT — Row FUN, Session FUN-2: conquest with a cost (read the first block); then FUN-3 … FUN-5, S16, row TU, Session H
+# NEXT SESSION PROMPT — Row FUN, Session FUN-2b: peace terms priced (read the first block); then FUN-3 … FUN-5, S16, row TU, Session H
+
+> **▶ NEXT: row FUN, Session FUN-2b — peace terms priced.** Its owning doc is `docs/GAMEPLAY_REVIEW_2026_11_25.md`
+> (§1.3, §5 — the FUN-2 row's sixth point, which FUN-2's approved plan moved here). Open in Plan Mode (the user's
+> standing preference); the forks below are pre-decided — say in the plan which you keep, each one line to reverse.
+>
+> **Why:** FUN-2 made land taken BY ARMS cost something (every court's fear of France, the league of the afraid, the
+> rising of unheld land). Land taken AT THE TABLE is still cheap past a point: the settlement table's land price stops
+> rising at five provinces (`calculate_raw_treaty_harshness`: 0.3 a province; `calculate_term_harshness_penalty`
+> caps the raw at 1.5, −45 — `settlement_scoring.py` ~894–915), and a cession at the table adds no fear. (The
+> bilateral peace already refuses a total cession of Austria at any war score — `tests/test_fun2b_peace_terms_
+> priced.py`'s plain test.)
+>
+> **The pre-decided design:**
+> 1. **A province costs war score at the table** — each province a package takes from a court is priced in the
+>    settlement's own scorer (a province, a capital more), so the price keeps rising past five; a package beyond the
+>    war score it can buy is refused, and the guided terms and Talleyrand's suggestions never offer one.
+> 2. **A total conquest by treaty takes more than one war** — a package that would take a court's every province is
+>    refused whatever the score (the same line the order card's "Erase this country?" draws by arms).
+> 3. **Land at the table frightens like a capture** — a cession to France's house writes `fear.capture_deltas` as a
+>    capture does (one writer, at the treaty roads — `settlement_ratify._apply_settlement_terms`, the one-time treaty
+>    clauses, compensation), never twice for a province France already took by arms.
+> 4. **Land handed back calms** — a province France's house hands back lowers that court's fear by what taking it
+>    added (`diplomacy.hand_back_province`, `game_end._return_home`, the treaty's `territory_return`).
+> 5. **Both sides** — the AI's demands of France are priced by the same scorer (golden rule 5).
+>
+> **The measure, the rule written before the data:** the three strict pins in `tests/test_fun2b_peace_terms_priced.py`
+> turn green (each made a plain test in the commit); on the ten ambient seeds, no peace France signs takes a court's
+> every province; the France band (`tools/_fr2_band_measure.py`) reported, never gated; the forty-turn series re-pinned
+> with its history kept by name if it moves.
+>
+> **Done when:** the pins hold; `tests/test_fun2b_peace_terms_priced.py` passes; every new word plain (golden rule
+> 11); a build the user plays with one question — "did the peace table tell you what each province costs?". Then
+> FUN-3 (goals), FUN-4 (the turn diet), FUN-5 (the sea made plain), S16 (the `main.gd` split), row TU, Session H.
+>
+> **Row FUN, Session FUN-2 ✅ BUILT November 26, 2026** (`SYSTEMS_REFERENCE.md` §240; `BUG_FIXES.md` §"Row FUN, Session FUN-2", FUN2-1 … FUN2-27): every court's fear of France (8 × nearness × stake, the capital ×3, fading 2 a turn), the league of the afraid (past 50 with a border or a stake, never an ally, three to a league, the afraid joining a league that stands, the by-fear members fading home under 25), a declaration angering its target's friends only, the order card's "erase this country?" with the peace table one button away, land that must be held or it rises after four turns, recruits from settled land, the "Who fears you" map mode and the Balance tab's WHO FEARS YOU — all armed by the 1805 campaign's `fear` block. The measure (`tools/_fun2_measure.py`, the rule written before the data): erasing Austria by turn 20 meets a coalition on 10 of 10 seeds with no member lacking a border or a stake; taking only the war aim meets none by turn 30 on 10 of 10 (bar 7); the France band 28 / 28 / 25 (reported); the forty-turn series unchanged. Committed and pushed at the user's word ("coe commit push", November 26).
+
+---
+
+## (kept) NEXT SESSION PROMPT — Row FUN, Session FUN-2: conquest with a cost — ✅ BUILT November 26, 2026 (the brief as it was decided, kept)
 
 > **▶ NEXT: row FUN, Session FUN-2 — conquest with a cost.** Its owning doc is `docs/GAMEPLAY_REVIEW_2026_11_25.md`
 > (§1.3 the diagnosis with file:line, §3 the research, §5 the row). Open in Plan Mode (the user's standing
@@ -53,7 +92,7 @@
 > last road faded while the next is read, a refusal's reason; the tag on one side; no box over the line; a refused
 > crossing offers the landing as a button (dimmed with why when nobody can sail) and a closed border "Ask <court>
 > for open borders"; the Codex's landing line corrected; the real-window probe `tests/test_fun1_the_hands.py` and
-> the fast lane `tools/fast_lane.py`. Committed at the user's word (“Commit the working tree changes with a sensible message”, November 26); not pushed — if a push follows, put this line right in FUN-2's commit.
+> the fast lane `tools/fast_lane.py`. Committed (f3df82a4) and pushed at the user's word (“Push it”, November 26).
 
 ---
 
@@ -77,8 +116,8 @@
 >   - the refusals a card may quote: "No road reaches …" (find 2), and the out-of-sight answers that name a man's
 >     last sighting (finds 1 and 10);
 >   - what a bombardment scores (card VI): a salvo is a won battle only past 5,000 dead.
-> - FR-2 is committed at the user's word (“Commit the working tree changes with a sensible message”, November 24), and not pushed. If these lines
->   still say "not pushed" after a push, put them right in TU's commit.
+> - FR-2 is committed at the user's word (“Commit the working tree changes with a sensible message”, November 24), and was pushed November 26
+>   with FUN-1 (“Push it”).
 >
 > **Session FR-1 ✅ BUILT November 23, 2026** (`SYSTEMS_REFERENCE.md` §237): WS-10, IC3-N1, PW3-D1 and IC2-N1 closed;
 > FR1-1 and FR1-2 found on the way and fixed; committed as 8dd99217 and pushed.

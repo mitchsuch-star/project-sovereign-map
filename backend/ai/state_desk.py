@@ -2471,7 +2471,7 @@ def _answer_buyoff(world, nation: str) -> str:
         world._make_diplo_key(world.player_nation, nation), 0) or 0)
     return (f"Buying off {_possessive(_court(world, nation))} design would cost "
             f"{_money(price)} gold, Sire, and one diplomatic point. It buys the "
-            f"design's sleep, not her goodwill: {buyoff_league_clause(relation)}.")
+            f"design's sleep, not her goodwill: {buyoff_league_clause(relation, world=world)}.")
 
 
 def _answer_war_score(world, nation: str) -> str:

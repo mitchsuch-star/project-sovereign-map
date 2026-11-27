@@ -54,6 +54,10 @@ signal take_requested(province: String)
 # offers that court's open-borders proposal — the Diplomacy window opened on the
 # court (diplomacy is never typed).
 signal diplomacy_requested(nation: String)
+# Row FUN, FUN-2 (November 26, 2026): "Erase this country?" — a capture that
+# would erase a court, or carry a court's fear of France past the line, offers
+# the peace table with that court instead ("Offer Austria peace now").
+signal peace_requested(nation: String)
 
 @onready var title_label: Label = $PanelContainer/VBox/TitleLabel
 @onready var command_label: Label = $PanelContainer/VBox/CommandLabel
@@ -1310,6 +1314,7 @@ func _terms(q: Dictionary) -> String:
 		lines.append("[b]No cost[/b] — " + str(q.get("note", "he is already carrying out that order.")))
 		return "\n".join(lines)
 	lines.append("[b]" + price_of(q) + "[/b] · " + _clock(q))
+	lines.append_array(_erase_lines(q))   # row FUN, FUN-2: what the capture costs, first
 	lines.append_array(_ground_lines(q))
 	var road = q.get("road", [])
 	if road is Array and road.size() > 1:
@@ -1394,6 +1399,32 @@ func _terms(q: Dictionary) -> String:
 # a row the game would refuse is dimmed beside the game's own reason.
 const ALT_LEAD := "Or another order — a chip sends it now, and this card closes:"
 const THEN_LEAD := "Or march and, on arrival — a chip sends the march with it:"
+
+
+# ── Row FUN, FUN-2 (November 26, 2026): "Erase this country?" ──
+# The quote's `erase` (`fear.capture_warning`): an order whose capture would take
+# a court's LAST province, or carry a court's fear of France past the line, says
+# so before the click — who would join a league against us and when — with the
+# other road one press away: the peace table with that court.
+func _erase_lines(q: Dictionary) -> PackedStringArray:
+	var lines := PackedStringArray()
+	var e = q.get("erase", null)
+	if not (e is Dictionary):
+		return lines
+	var line := str(e.get("line", ""))
+	var joiners = e.get("joiners", [])
+	var grave: bool = bool(e.get("last", false)) or (joiners is Array and not joiners.is_empty())
+	if line != "":
+		lines.append("[color=#" + (Utils.COLOR_ERROR if grave else Utils.COLOR_WARNING) + "]"
+			+ line + "[/color]")
+	var court := str(e.get("court", ""))
+	if court != "":
+		var shown := str(e.get("court_shown", court))
+		lines.append("  " + Utils.bb_button_chip("peace:" + court,
+			str(e.get("peace_label", "Offer " + shown + " peace now")),
+			Utils.COLOR_GOLD, BRING_CHIP_BG, "",
+			"Closes this card and opens the peace table with " + shown + " instead."))
+	return lines
 
 
 func _alt_lines(q: Dictionary) -> PackedStringArray:
@@ -1543,6 +1574,13 @@ func _on_terms_meta(meta) -> void:
 		if court != "":
 			_close_quietly()
 			diplomacy_requested.emit(court)
+		return
+	# Row FUN, FUN-2: "Offer <court> peace now" — the peace table instead.
+	if _mode == "order" and visible and meta_str.begins_with("peace:"):
+		var peace_court := meta_str.substr("peace:".length())
+		if peace_court != "":
+			_close_quietly()
+			peace_requested.emit(peace_court)
 		return
 	if _mode != "order" or not visible or not meta_str.begins_with("do:"):
 		return

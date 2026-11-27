@@ -2866,6 +2866,18 @@ class WorldState:
         self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
         self.we_dispatched_thresholds: Dict[str, int] = {}  # nation -> highest WE threshold dispatched
         self.war_start_turns: Dict[str, int] = {}       # diplo_key -> turn war began (R142)
+        # FUN-2 (row FUN, "conquest with a cost"; `backend/game_logic/fear.py`):
+        # every court's fear of France {court: int 0-100} (the brief's
+        # `court_grudges`), the scenario's `fear` block that arms the rules
+        # (None = off: the bare flag world, the tutorials, the legacy map),
+        # and the book of what each court minds and who faded home.
+        self.court_grudges: Dict[str, int] = {}
+        self.fear_rules: Optional[Dict[str, int]] = None
+        self.fear_book: Dict[str, Any] = {"causes": {}, "faded": {}}
+        # Transient (not saved): the provinces a turn short of rising, read
+        # by the morning's warning in `fear.tick_risings`, and the ones due.
+        self._rising_soon: List[str] = []
+        self._rising_due: List[str] = []
 
         # ============================================================
         # B-HEGEMONY: balance-of-power engine public-memory fields
@@ -5780,9 +5792,17 @@ class WorldState:
         # Dormant: False at once unless the Congress sits.
         from backend.game_logic import congress as _congress
         _was_titled = _congress.was_titled(self, region_name)
+        # FUN-2 (row FUN, "conquest with a cost"): what this capture adds to
+        # each court's fear of France — read BEFORE the controller moves (the
+        # loser's borders and the agendas as they stand; the caches warm),
+        # applied below under the +2's own skips. {} outside an armed world.
+        from backend.game_logic import fear as _fear
+        _fear_deltas = (_fear.capture_deltas(self, region_name, old_controller, capturing_nation)
+                        if not _liberated_to else {})
         region.controller = _holder
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
+        region.unheld_turns = 0  # FUN-2: a new holder's count starts afresh
         # AAR4-X1: the loser's garrison does not change sides with the walls.
         if (old_controller and old_controller != _holder):
             region.garrison_strength = 0
@@ -5851,6 +5871,9 @@ class WorldState:
                     and not _liberated_to):
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture", target=capturing_nation)
+                # FUN-2: Europe's fear of France, court by court (the three
+                # skips are the +2's: own soil, a recovered title, a liberation).
+                _fear.apply_deltas(self, _fear_deltas, region_name)
             # DY-1 "The Alarm of Europe" (DYNAMISM_SPEC.md §3, the Tier-4
             # gate §3c G1): an AI court's conquest writes Europe's alarm
             # against its HOUSE — on top of the +2 above, under the same
@@ -8612,6 +8635,14 @@ class WorldState:
         # Golden Rule 8: called per active nation per turn — ride the cached
         # helper instead of a raw O(R) controller scan (Slice 8 audit).
         controlled = [self.regions[n] for n in self.get_nation_regions(nation)]
+        # FUN-2 (row FUN, "conquest with a cost"): a province gives recruits
+        # only once Settling (stability 51+) — the plains, stables and arsenal
+        # bonuses below count settled land (recruiting AT it already needs
+        # 51+). Every court alike (GR5); unarmed or the seam down: as before.
+        from backend.game_logic import fear as _fear
+        if _fear.armed(self) and _fear.recruits_wait_for_settling():
+            controlled = [r for r in controlled
+                          if int(getattr(r, "stability", 100) or 0) >= _fear.SETTLING_MIN]
 
         # Infantry: generous base regen (no territory dependency)
         inf_regen = INFANTRY_BASE_REGEN
@@ -8678,6 +8709,11 @@ class WorldState:
         "stop selling" clause; 'exempt stables' stays un-built)."""
         nation = nation or self.player_nation
         controlled = [self.regions[n] for n in self.get_nation_regions(nation)]
+        # FUN-2: the same settled land the rate pays on (`get_manpower_regen_rates`)
+        from backend.game_logic import fear as _fear
+        if _fear.armed(self) and _fear.recruits_wait_for_settling():
+            controlled = [r for r in controlled
+                          if int(getattr(r, "stability", 100) or 0) >= _fear.SETTLING_MIN]
         cav_bonus = self._cavalry_territory_bonus(controlled)
         return int(min(cav_bonus + STABLES_CAVALRY_REGEN,
                        CAVALRY_REGEN_BONUS_CAP)
@@ -9154,14 +9190,36 @@ class WorldState:
         # damage lingers after liberation (recovery via the normal growth
         # below). Empty set off-Europe (N1: legacy stability pins stand).
         disrupted = self.get_disrupted_regions()
+        # FUN-2 (row FUN, "conquest with a cost"): a province France itself
+        # holds by conquest, Hostile, with no French corps and no garrison in
+        # it does not settle, and counts the turn; at the scenario's `rises`
+        # it rises (`fear.tick_risings`, right after this pass). Unarmed or
+        # the seam down: nothing changes.
+        from backend.game_logic import fear as _fear
+        _rises = bool(_fear.armed(self) and _fear.unheld_land_rises())
+        _rise_line = _fear.rule(self, "rises") if _rises else 0
+        _due: List[str] = []
+        self._rising_soon = []
         for region in self.regions.values():
             if region.controller is None:
                 continue  # Neutral/unclaimed regions don't grow
+            _unheld = bool(_rises and region.stability <= _fear.HOSTILE_MAX
+                           and _fear.rising_applies(self, region)
+                           and not _fear.is_held(self, region))
+            if _rises:
+                if _unheld:
+                    region.unheld_turns = int(region.unheld_turns or 0) + 1
+                    if region.unheld_turns >= _rise_line:
+                        _due.append(region.name)
+                    elif region.unheld_turns == _rise_line - 1:
+                        self._rising_soon.append(region.name)
+                elif region.unheld_turns:
+                    region.unheld_turns = 0
             if region.name in disrupted:
                 region.stability = max(
                     0, region.stability - DISRUPTION_STABILITY_DRAIN)
                 continue
-            base_growth = 5
+            base_growth = 0 if _unheld else 5
             # FA-D19 (slice 17, Phase 2): the `garrison` verb's own detachment
             # counts as the garrison it is (one predicate, read here).
             garrison_bonus = 5 if (self._has_marshal_in_region(region.name, region.controller)
@@ -9171,6 +9229,41 @@ class WorldState:
             # Clear plundered flag when region recovers (Phase 6.2.E)
             if region.plundered and region.stability > 50:
                 region.plundered = False
+        self._rising_due = _due
+
+    def _rising_fields(self, region) -> Dict[str, Any]:
+        """FUN-2: `rises_in` (turns, int) and `rises_to` (the court's name)
+        for an unheld Hostile conquest of ours — {} for every other province
+        (and in an unarmed world), so the map payload is unchanged there."""
+        from backend.game_logic import fear as _fear
+        if not _fear.armed(self):
+            return {}
+        left = _fear.rises_in(self, region)
+        if left is None:
+            return {}
+        to = _fear.rising_target(self, region.name)
+        return {"rises_in": int(left),
+                "rises_to": _fear.court_name(self, to) if to else ""}
+
+    def _fear_save_fields(self) -> Dict[str, Any]:
+        """FUN-2 (`fear.py`): Europe's fear of France in a save — written only in
+        a world the rules arm (or one holding fear), so an unarmed world's save
+        stays byte-identical (`to_dict` reads it on one line: it sits at its
+        500-line ratchet)."""
+        if not (self.fear_rules or self.court_grudges):
+            return {}
+        return {"court_grudges": {str(k): int(v) for k, v in (self.court_grudges or {}).items()},
+                "fear_rules": dict(self.fear_rules) if self.fear_rules else None,
+                "fear_book": copy.deepcopy(self.fear_book or {"causes": {}, "faded": {}})}
+
+    def _fear_summary(self) -> Dict[str, Any]:
+        """FUN-2: the top-level map-mode keys — {} when the rules are off."""
+        from backend.game_logic import fear as _fear
+        if not _fear.chooses(self):
+            return {}
+        return {"court_fear": _fear.fear_map(self),
+                "fear_house": _fear.fear_house(self),
+                "fear_line": int(_fear.rule(self, "join"))}
 
     def process_war_damage_recovery(self):
         """Natural war damage recovery for all regions. -0.02/turn."""
@@ -10279,7 +10372,7 @@ class WorldState:
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
             "we_dispatched_thresholds": {k: int(v) for k, v in self.we_dispatched_thresholds.items()},
-            "war_start_turns": {k: int(v) for k, v in self.war_start_turns.items()},
+            "war_start_turns": {k: int(v) for k, v in self.war_start_turns.items()}, **self._fear_save_fields(),  # FUN-2
 
             # ═══════ B-HEGEMONY (v2.4.3 §7.3 public-memory) ═══════
             # Stored band high-water + hegemon identity + per-epoch
@@ -10638,6 +10731,11 @@ class WorldState:
         # is carried whole; nothing is written where none is authored.
         from backend.game_logic import awakening as _awakening
         _awakening.install(world, data)
+        # FUN-2 (row FUN, "conquest with a cost"): the fear rules — a save's
+        # `fear_rules` / `court_grudges` / `fear_book`, or the scenario's
+        # top-level `fear` block arming a fresh campaign; nothing elsewhere.
+        from backend.game_logic import fear as _fear
+        _fear.install(world, data)
         # DY-6 (DYNAMISM_SPEC.md §6, Tier 8): the crowns' store — the
         # scenario's top-level `crowns` block (the princes, the legitimists)
         # or a save's `moments.crowns`; nothing where none is authored.
@@ -12440,6 +12538,9 @@ class WorldState:
                 "effective_income": int(region.get_effective_income()),
                 "stability": int(region.stability),
                 "stability_label": region.get_stability_label(),
+                # FUN-2 (row FUN): an unheld Hostile conquest of ours counts
+                # down to rising — the province window's line (0 = it will not).
+                **self._rising_fields(region),
                 "war_damage": int(region.war_damage * 100),  # Send as int % (0-100) — Godot crashes on floats
                 # WO slice 8 (§2 C-7): the player's EFFECTIVE cap — the
                 # figure the attrition engine bills — not the raw
@@ -12542,6 +12643,10 @@ class WorldState:
             "levy": _levy_status(self),
             "regions_controlled": len(self.get_player_regions()),
             "total_regions": len(self.regions),
+            # FUN-2 (row FUN): every court's fear of France for the "Who fears
+            # you" map mode, and the line past which a court may join a league
+            # (diplomacy has no fog — public). Absent in an unarmed world.
+            **self._fear_summary(),
             "map_data": map_data,
             "marshals": {
                 name: {
@@ -12770,6 +12875,10 @@ class WorldState:
                 filtered_region["effective_income"] = region_data["effective_income"]
                 filtered_region["stability"] = region_data["stability"]
                 filtered_region["stability_label"] = region_data["stability_label"]
+                # FUN-2: the rising count rides only our own provinces
+                for _rise_key in ("rises_in", "rises_to"):
+                    if _rise_key in region_data:
+                        filtered_region[_rise_key] = region_data[_rise_key]
                 filtered_region["war_damage"] = region_data["war_damage"]
                 filtered_region["supply_capacity"] = region_data["supply_capacity"]
                 filtered_region["recruit_price_here"] = region_data.get(
@@ -13467,6 +13576,12 @@ class WorldState:
         # Must run BEFORE income phase so modifiers are current
         # ════════════════════════════════════════════════════════════
         self.process_stability_growth()
+        # FUN-2: the provinces whose unheld count reached the line rise, and
+        # the ones a turn short are named (the morning's warning).
+        from backend.game_logic import fear as _fear_tick
+        tactical_events.extend(_fear_tick.tick_risings(
+            self, list(getattr(self, "_rising_due", None) or [])))
+        self._rising_due = []
         self.process_war_damage_recovery()
 
         # ════════════════════════════════════════════════════════════
@@ -17738,8 +17853,23 @@ class WorldState:
                                 self, "province_title", None) or {}).get(
                                     auto_charge_battle_region)) or {})
                             _ac_holder = _ac_liberated_to or marshal.nation
+                            # FUN-2 / FUN2-1 (the sibling sweep): the one
+                            # conquest outside the chokepoint takes the
+                            # province as the chokepoint does — fear read
+                            # before the controller moves.
+                            from backend.game_logic import fear as _ac_fear
+                            _ac_mirror = bool(_ac_fear.armed(self)
+                                              and _ac_fear.the_charge_takes_as_the_chokepoint_does())
+                            _ac_fear_deltas = (_ac_fear.capture_deltas(
+                                self, auto_charge_battle_region, _charge_from, marshal.nation)
+                                if (_ac_mirror and not _ac_liberated_to) else {})
                             cap_region.controller = _ac_holder
                             self.invalidate_active_nations_cache()
+                            if _ac_mirror:
+                                _ac_fear.mirror_capture(
+                                    self, auto_charge_battle_region, _charge_from,
+                                    marshal.nation, _ac_liberated_to, _ac_prior_title,
+                                    _ac_fear_deltas)
                             # DDB-43 (Pre-Deploy S13b part 2), the sweep's
                             # sibling: the mirrored conquest announces a
                             # change between two other courts too.

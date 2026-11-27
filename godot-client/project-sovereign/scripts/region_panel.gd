@@ -37,6 +37,9 @@ signal quotes_requested(region: String)
 # Session UI-6 (November 13, 2026): a marshal's name in FORCES PRESENT selects
 # him on the map (main.gd answers; meta "select:<Name>").
 signal marshal_select_requested(marshal_name: String)
+# Row FUN, FUN-2 (November 27, 2026): "Offer <court> peace now" beside the price
+# of the province falling (meta "peace:<court>"; main.gd opens the peace table).
+signal peace_requested(nation: String)
 
 const _MarshalState = preload("res://scripts/marshal_state.gd")
 
@@ -479,6 +482,11 @@ func _on_meta_clicked(meta):
 		var command = meta_str.substr("do:".length())
 		if command != "":
 			region_command.emit(command)
+	elif meta_str.begins_with("peace:"):
+		# Row FUN, FUN-2: the peace table instead of the capture
+		var peace_court: String = meta_str.substr("peace:".length())
+		if peace_court != "":
+			peace_requested.emit(peace_court)
 	elif meta_str.begins_with("goalclear:"):
 		# Row IC, directives: "clear the war goal against <court>" (free)
 		var goal_court := meta_str.substr("goalclear:".length())
@@ -535,6 +543,24 @@ func _dim(label: String, why: String, sep: String = "  ") -> String:
 	if Utils.explanations_folded():
 		return Utils.bb_chip_disabled(label, "", why)
 	return Utils.bb_chip_disabled(label) + sep + "[color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
+
+
+static func rising_line(data: Dictionary) -> String:
+	"""Row FUN, FUN-2: a province of ours taken by arms, Hostile, with none of
+	our troops in it — the backend's `rises_in` (turns) and `rises_to` (the
+	court it would go back to), in plain words with the way to stop it. ''
+	for every other province."""
+	if not data.has("rises_in"):
+		return ""
+	var left := int(data.get("rises_in", 0))
+	if left <= 0:
+		return ""
+	var to := str(data.get("rises_to", ""))
+	var when := "next turn" if left == 1 else "in " + str(left) + " turns"
+	var back := (" — back to " + to) if to != "" else ""
+	return ("[color=#" + Utils.COLOR_ERROR + "]Hostile: it pays no taxes and gives no recruits. "
+		+ "With none of our troops here it rises " + when + back + ".[/color] "
+		+ "[color=#" + Utils.COLOR_INFO + "]Leave a corps or a garrison here to hold it.[/color]\n")
 
 
 func _facts_row(income: int, stability: int, supply: int, has_garrison: bool, garrison: int, war_damage: int = 0) -> String:
@@ -649,6 +675,7 @@ func _render() -> void:
 
 	# ── Fog-honest economy block ──
 	var folded_facts := ""   # Session UI-6: Folded, the figures row (spliced in before ACTIONS)
+	var rising_lead := ""    # Row FUN, FUN-2: the rising count (spliced in with it, before ACTIONS)
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
@@ -689,6 +716,10 @@ func _render() -> void:
 			facts_page += " Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
 			facts_page += " Stability: " + str(stability) + "%"
+			# Row FUN, FUN-2: the stage in its word (Hostile / Unrest / Settling / Stable)
+			var stage := str(data.get("stability_label", ""))
+			if stage != "" and stage != "Unknown":
+				facts_page += " (" + stage + ")"
 		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
 		# "-1", so both readers of this key must branch — the garrison
 		# sibling just below already does.
@@ -709,6 +740,11 @@ func _render() -> void:
 			folded_facts = _facts_row(effective_income, stability, supply_cap, garrison_info != null, g_strength, int(data.get("war_damage", 0)))
 		else:
 			bbcode += facts_page
+		# Row FUN, FUN-2 (November 26, 2026): land taken by arms must be held —
+		# an unheld Hostile conquest counts down to rising, said with its count.
+		# The real-client press (November 27): at 1600 x 900 the line sat under
+		# RECRUIT and Build, below the fold — it leads now, with the figures.
+		rising_lead = rising_line(data)
 		# S14E-D10 (the sweep): the Descent camp's count on the panel the marches
 		# are ordered from, the map tooltip's twin (the backend stamps `camp_note`
 		# only while the camp counts).
@@ -1252,8 +1288,8 @@ func _render() -> void:
 		for row in action_rows:
 			actions += row + "\n"
 		bbcode = bbcode.substr(0, actions_at) + actions + "\n" + bbcode.substr(actions_at)
-	if folded_facts != "":
-		bbcode = bbcode.substr(0, actions_at) + folded_facts + bbcode.substr(actions_at)
+	if folded_facts != "" or rising_lead != "":
+		bbcode = bbcode.substr(0, actions_at) + folded_facts + rising_lead + bbcode.substr(actions_at)
 	# Row BA, BA-3 (K14): an open day that awaits our word is the most pressing
 	# thing in its province — its block (heading, morning, chips) is the FIRST
 	# section: under the province's own header lines (and, Folded, the figures
@@ -1264,7 +1300,7 @@ func _render() -> void:
 		# eye lands, not down among the march rows.
 		var day_text := _day_block() + _take_section()
 		if day_text != "":
-			var day_at: int = actions_at + folded_facts.length()
+			var day_at: int = actions_at + folded_facts.length() + rising_lead.length()
 			bbcode = bbcode.substr(0, day_at) + day_text + bbcode.substr(day_at)
 
 	content_area.text = bbcode
@@ -2057,8 +2093,10 @@ func _march_here_section() -> String:
 	we see here). A chip sends its quoted command through the same road as a
 	typed one; a refused order is dimmed beside the quote's own reason."""
 	var out := ""
+	var takes_here := false   # row FUN, FUN-2: an order here could take the province
 	var march = _quotes.get("march", [])
 	if march is Array and not march.is_empty():
+		takes_here = true
 		# Row PW: a corps within one move pays the move's price and arrives now;
 		# further off it is the standing march (each row says which).
 		out += _march_caption("SEND A CORPS HERE", "next door is a move, and he arrives now; further off he marches on each turn")
@@ -2083,6 +2121,7 @@ func _march_here_section() -> String:
 	# in force, no Emperor in the field, authority below the gate, the pool).
 	var army = _quotes.get("army", null)
 	if army is Dictionary and not army.is_empty():
+		takes_here = true
 		out += _march_caption("THE ARMY", "one order, the Staff's price, every corps within the Emperor's reach")
 		out += _quote_rows([army])
 		out += _army_detour_rows(army)   # S14E-X135: which corps take a long or foreign road
@@ -2103,9 +2142,39 @@ func _march_here_section() -> String:
 				out += "\n" + Utils.HEAD_OPEN + "ATTACK " \
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(ordinary)
+				takes_here = true
+	# Row FUN, FUN-2 (the real-client press, November 27, 2026): these chips send
+	# at once, with no card — so what the province falling would cost (a court
+	# erased, courts afraid enough to join a coalition) is said above them.
+	if takes_here:
+		out = erase_lines(_quotes.get("erase", null)) + out
 	# Row IC, Session 2 (IC-7): "Look at it" — our corps that can scout this
 	# province from where they stand (the backend's `look` rows).
 	out += _look_rows(_quotes.get("look", []))
+	return out
+
+
+static func erase_lines(erase) -> String:
+	"""Row FUN, FUN-2: the order card's warning on the panel — the backend's
+	`erase` (`fear.capture_warning`), red where a court is erased or courts
+	would join a coalition, amber for a crossing alone, and the peace button
+	beside it. Empty when the province's fall is no news."""
+	if not (erase is Dictionary):
+		return ""
+	var said := str((erase as Dictionary).get("line", "")).strip_edges()
+	if said == "":
+		return ""
+	var joiners = (erase as Dictionary).get("joiners", [])
+	var grave: bool = bool((erase as Dictionary).get("last", false)) \
+		or (joiners is Array and not (joiners as Array).is_empty())
+	var out := "\n[color=#" + (Utils.COLOR_ERROR if grave else Utils.COLOR_WARNING) + "]" + said + "[/color]\n"
+	var court := str((erase as Dictionary).get("court", ""))
+	if court != "":
+		var shown := str((erase as Dictionary).get("court_shown", court))
+		out += "  " + Utils.bb_button_chip("peace:" + court,
+			str((erase as Dictionary).get("peace_label", "Offer " + shown + " peace now")),
+			Utils.COLOR_GOLD, _CHIP_BG, "",
+			"Opens the peace table with " + shown + " instead.") + "\n"
 	return out
 
 

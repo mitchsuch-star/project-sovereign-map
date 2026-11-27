@@ -1408,6 +1408,37 @@ def _validate_awakening(result, data: dict) -> None:
         result.add_error("awakening.stirring", "Must be below `risen`")
 
 
+def _validate_fear(result, data: dict) -> None:
+    """Row FUN, FUN-2 ("conquest with a cost"): the top-level `fear` block
+    arms Europe's fear of France — an object (empty allowed: the code
+    defaults) whose `join` (a court may join a league past it), `leave` (a
+    member that joined by fear leaves under it), `fade` (a turn) and `rises`
+    (unheld Hostile turns before a conquest rises) are integers inside
+    `fear._BOUNDS`, with `leave` below `join`; an unknown key is an ERROR
+    (the `awakening` idiom). Absent = the rules stay off."""
+    if "fear" not in data:
+        return
+    block = data.get("fear")
+    if not isinstance(block, dict):
+        result.add_error("fear", f"Must be an object, got {type(block).__name__}")
+        return
+    from backend.game_logic.fear import _BOUNDS
+    allowed = set(_BOUNDS)
+    for key in sorted(set(block) - allowed):
+        result.add_error(f"fear.{key}", "Unknown key (allowed: " + ", ".join(sorted(allowed)) + ")")
+    values = {}
+    for key, (lo, hi) in sorted(_BOUNDS.items()):
+        if key not in block:
+            continue
+        value = block.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or not (lo <= value <= hi):
+            result.add_error(f"fear.{key}", f"Must be an integer in [{lo}, {hi}]")
+        else:
+            values[key] = int(value)
+    if "leave" in values and "join" in values and values["leave"] >= values["join"]:
+        result.add_error("fear.leave", "Must be below `join`")
+
+
 def _validate_crowns(result, data: dict) -> None:
     """DY-6 (DYNAMISM_SPEC.md §6, Tier 8): the top-level `crowns` block —
     an object; `princes` a list of at most six distinct non-empty names
@@ -4203,6 +4234,7 @@ def validate_scenario(
 
     # DY-4 (DYNAMISM_SPEC §5): the authored `awakening` block.
     _validate_awakening(result, data)
+    _validate_fear(result, data)       # row FUN, FUN-2
 
     # DY-6 (DYNAMISM_SPEC §6): the authored `crowns` block (the princes, the
     # recognition rule); each template's `crown` block is checked beside it.
